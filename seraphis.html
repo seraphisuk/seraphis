@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Seraphis</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --amber:       #E87820;
+      --amber-dark:  #C45A00;
+      --amber-light: #F5A84B;
+      --amber-pale:  #FDF3E8;
+      --ink:         #1A1714;
+      --ink-mid:     #4A4540;
+      --ink-muted:   #8A837C;
+      --rule:        #E4DDD8;
+      --surface:     #FDFAF8;
+      --white:       #FFFFFF;
+
+      --font-display: 'Cormorant Garamond', Georgia, serif;
+      --font-body:    'DM Sans', system-ui, sans-serif;
+
+      --max:    1160px;
+      --gutter: clamp(1.5rem, 5vw, 4rem);
+
+      --section-gap: clamp(5rem, 10vw, 9rem);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-body);
+      font-size: 1rem;
+      line-height: 1.75;
+      color: var(--ink);
+      background: var(--surface);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── UTILITY ───────────────────────────── */
+    .container {
+      max-width: var(--max);
+      margin-inline: auto;
+      padding-inline: var(--gutter);
+    }
+
+    .section { padding-block: var(--section-gap); }
+
+    .overline {
+      font-family: var(--font-body);
+      font-size: 0.7rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--amber);
+    }
+
+    .rule-block {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .rule-block::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--rule);
+    }
+
+    h1, h2, h3 {
+      font-family: var(--font-display);
+      font-weight: 500;
+      line-height: 1.15;
+    }
+
+    h1 { font-size: clamp(3rem, 7vw, 5.5rem); }
+    h2 { font-size: clamp(2rem, 4vw, 3rem); }
+    h3 { font-size: 1.4rem; }
+
+    p { color: var(--ink-mid); }
+
+    a { color: inherit; text-decoration: none; }
+
+    /* ── NAV ───────────────────────────────── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(253,250,248,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--rule);
+    }
+
+    .nav-inner {
+      max-width: var(--max);
+      margin-inline: auto;
+      padding-inline: var(--gutter);
+      height: 68px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .nav-logo img {
+      height: 40px;
+      width: auto;
+    }
+
+    .nav-wordmark {
+      font-family: var(--font-display);
+      font-size: 1.35rem;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      color: var(--ink);
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      font-size: 0.85rem;
+      font-weight: 400;
+      letter-spacing: 0.04em;
+      color: var(--ink-mid);
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--ink); }
+
+    .nav-cta {
+      font-size: 0.8rem !important;
+      font-weight: 500 !important;
+      letter-spacing: 0.08em !important;
+      text-transform: uppercase;
+      color: var(--amber) !important;
+      border: 1px solid var(--amber);
+      padding: 0.45rem 1.1rem;
+      border-radius: 2px;
+      transition: background 0.2s, color 0.2s !important;
+    }
+
+    .nav-cta:hover {
+      background: var(--amber) !important;
+      color: var(--white) !important;
+    }
+
+    /* ── HERO ──────────────────────────────── */
+    #hero {
+      min-height: 92vh;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      align-items: center;
+      gap: 4rem;
+      padding-block: clamp(4rem, 10vh, 8rem);
+    }
+
+    .hero-text { max-width: 560px; }
+
+    .hero-text .overline { margin-bottom: 1.5rem; }
+
+    .hero-text h1 {
+      color: var(--ink);
+      margin-bottom: 1.5rem;
+    }
+
+    .hero-text h1 em {
+      font-style: italic;
+      color: var(--amber);
+    }
+
+    .hero-lead {
+      font-size: 1.1rem;
+      line-height: 1.8;
+      color: var(--ink-mid);
+      max-width: 46ch;
+      margin-bottom: 2.5rem;
+    }
+
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      display: inline-block;
+      background: var(--amber);
+      color: var(--white);
+      font-family: var(--font-body);
+      font-size: 0.8rem;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 0.9rem 2rem;
+      border-radius: 2px;
+      transition: background 0.2s, transform 0.15s;
+    }
+
+    .btn-primary:hover {
+      background: var(--amber-dark);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      font-size: 0.85rem;
+      font-weight: 400;
+      color: var(--ink-mid);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.2s;
+    }
+
+    .btn-secondary:hover { border-color: var(--ink-mid); }
+
+    .hero-visual {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+    }
+
+    .hero-emblem {
+      width: clamp(240px, 38vw, 440px);
+      height: clamp(240px, 38vw, 440px);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .emblem-ring {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 1px solid var(--rule);
+      animation: ring-pulse 6s ease-in-out infinite;
+    }
+
+    .emblem-ring:nth-child(2) {
+      inset: 12%;
+      border-color: rgba(232,120,32,0.15);
+      animation-delay: 1s;
+    }
+
+    .emblem-ring:nth-child(3) {
+      inset: 24%;
+      border-color: rgba(232,120,32,0.08);
+      animation-delay: 2s;
+    }
+
+    @keyframes ring-pulse {
+      0%, 100% { opacity: 0.5; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.015); }
+    }
+
+    .emblem-img {
+      width: 55%;
+      height: 55%;
+      object-fit: contain;
+      position: relative;
+      z-index: 2;
+      filter: drop-shadow(0 8px 32px rgba(232,120,32,0.2));
+    }
+
+    .hero-stat-strip {
+      grid-column: 1 / -1;
+      display: flex;
+      gap: 0;
+      border-top: 1px solid var(--rule);
+      padding-top: 2.5rem;
+    }
+
+    .hero-stat {
+      flex: 1;
+      padding-right: 2rem;
+      border-right: 1px solid var(--rule);
+      margin-right: 2rem;
+    }
+
+    .hero-stat:last-child {
+      border-right: none;
+      margin-right: 0;
+    }
+
+    .hero-stat-number {
+      font-family: var(--font-display);
+      font-size: 2.2rem;
+      font-weight: 500;
+      color: var(--amber);
+      line-height: 1;
+      margin-bottom: 0.35rem;
+    }
+
+    .hero-stat-label {
+      font-size: 0.78rem;
+      font-weight: 400;
+      letter-spacing: 0.05em;
+      color: var(--ink-muted);
+      text-transform: uppercase;
+    }
+
+    /* ── MISSION ───────────────────────────── */
+    #mission { background: var(--ink); color: var(--white); }
+
+    #mission p { color: rgba(255,255,255,0.65); }
+
+    #mission .overline { color: var(--amber-light); }
+
+    .mission-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: clamp(3rem, 6vw, 6rem);
+      align-items: start;
+    }
+
+    .mission-statement {
+      font-family: var(--font-display);
+      font-size: clamp(1.6rem, 3vw, 2.4rem);
+      font-weight: 400;
+      font-style: italic;
+      line-height: 1.4;
+      color: var(--white);
+      border-left: 3px solid var(--amber);
+      padding-left: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .mission-body { font-size: 0.95rem; line-height: 1.85; }
+
+    .mission-pillars {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .pillar {
+      padding: 1.5rem;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 3px;
+      transition: border-color 0.2s;
+    }
+
+    .pillar:hover { border-color: rgba(232,120,32,0.4); }
+
+    .pillar-number {
+      font-family: var(--font-display);
+      font-size: 2rem;
+      font-weight: 500;
+      color: var(--amber);
+      line-height: 1;
+      margin-bottom: 0.5rem;
+    }
+
+    .pillar h3 {
+      color: var(--white);
+      font-size: 1rem;
+      font-family: var(--font-body);
+      font-weight: 500;
+      letter-spacing: 0.03em;
+      margin-bottom: 0.4rem;
+    }
+
+    .pillar p { font-size: 0.88rem; }
+
+    /* ── APPROACH ──────────────────────────── */
+    #approach {}
+
+    .approach-header {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: end;
+      margin-bottom: 4rem;
+    }
+
+    .approach-header p { font-size: 0.95rem; }
+
+    .approach-steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: var(--rule);
+      border: 1px solid var(--rule);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .step {
+      background: var(--white);
+      padding: 2rem 1.75rem;
+      transition: background 0.2s;
+    }
+
+    .step:hover { background: var(--amber-pale); }
+
+    .step-index {
+      font-family: var(--font-display);
+      font-size: 3rem;
+      font-weight: 500;
+      color: var(--rule);
+      line-height: 1;
+      margin-bottom: 1rem;
+    }
+
+    .step h3 {
+      font-size: 1.15rem;
+      margin-bottom: 0.6rem;
+      color: var(--ink);
+    }
+
+    .step p { font-size: 0.88rem; }
+
+    /* ── TRANSPARENCY ──────────────────────── */
+    #transparency { background: var(--amber-pale); }
+
+    .transparency-intro {
+      max-width: 60ch;
+      margin-bottom: 3rem;
+    }
+
+    .transparency-intro h2 { margin-bottom: 1rem; }
+    .transparency-intro p { font-size: 0.95rem; }
+
+    .doc-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+    }
+
+    .doc-card {
+      background: var(--white);
+      border: 1px solid rgba(232,120,32,0.2);
+      border-radius: 3px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      text-decoration: none;
+    }
+
+    .doc-card:hover {
+      border-color: var(--amber);
+      box-shadow: 0 4px 20px rgba(232,120,32,0.1);
+    }
+
+    .doc-icon {
+      width: 36px;
+      height: 36px;
+      background: var(--amber-pale);
+      border: 1px solid rgba(232,120,32,0.25);
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .doc-icon svg { width: 18px; height: 18px; stroke: var(--amber-dark); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+
+    .doc-title {
+      font-family: var(--font-body);
+      font-weight: 500;
+      font-size: 0.9rem;
+      color: var(--ink);
+    }
+
+    .doc-desc {
+      font-size: 0.8rem;
+      color: var(--ink-muted);
+      line-height: 1.6;
+      flex: 1;
+    }
+
+    .doc-link {
+      font-size: 0.75rem;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--amber-dark);
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .charity-notice {
+      margin-top: 2rem;
+      padding: 1rem 1.25rem;
+      background: var(--white);
+      border-left: 3px solid var(--amber);
+      border-radius: 0 3px 3px 0;
+      font-size: 0.83rem;
+      color: var(--ink-mid);
+    }
+
+    /* ── TRUSTEES ──────────────────────────── */
+    #trustees {}
+
+    .trustees-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 2rem;
+      margin-bottom: 3rem;
+      flex-wrap: wrap;
+    }
+
+    .trustees-header p {
+      max-width: 44ch;
+      font-size: 0.9rem;
+    }
+
+    .trustees-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .trustee-card {
+      padding: 1.5rem;
+      border: 1px solid var(--rule);
+      border-radius: 3px;
+      transition: border-color 0.2s;
+    }
+
+    .trustee-card:hover { border-color: rgba(232,120,32,0.4); }
+
+    .trustee-avatar {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: var(--amber-pale);
+      border: 2px solid rgba(232,120,32,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--amber-dark);
+      margin-bottom: 1rem;
+      overflow: hidden;
+    }
+
+    .trustee-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+    .trustee-name {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 0.2rem;
+    }
+
+    .trustee-role {
+      font-size: 0.78rem;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 0.6rem;
+    }
+
+    .trustee-bio {
+      font-size: 0.82rem;
+      color: var(--ink-muted);
+      line-height: 1.65;
+    }
+
+    /* ── CONTACT ───────────────────────────── */
+    #contact { background: var(--ink); }
+
+    #contact .overline { color: var(--amber-light); }
+    #contact h2 { color: var(--white); }
+
+    .contact-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: clamp(3rem, 6vw, 6rem);
+      align-items: start;
+    }
+
+    .contact-body {
+      font-size: 0.95rem;
+      line-height: 1.85;
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 2.5rem;
+    }
+
+    .contact-email-block {
+      display: inline-flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+
+    .contact-email-label {
+      font-size: 0.7rem;
+      font-weight: 500;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.35);
+    }
+
+    .contact-email {
+      font-family: var(--font-display);
+      font-size: 1.6rem;
+      font-weight: 500;
+      color: var(--amber-light);
+      border-bottom: 1px solid rgba(245,168,75,0.3);
+      padding-bottom: 0.2rem;
+      transition: border-color 0.2s;
+    }
+
+    .contact-email:hover { border-color: var(--amber-light); }
+
+    .contact-aside {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      padding-top: 0.5rem;
+    }
+
+    .contact-detail {
+      padding: 1.25rem 1.5rem;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 3px;
+    }
+
+    .contact-detail-label {
+      font-size: 0.7rem;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.35);
+      margin-bottom: 0.4rem;
+    }
+
+    .contact-detail-value {
+      font-size: 0.9rem;
+      color: rgba(255,255,255,0.75);
+    }
+
+    /* ── FOOTER ────────────────────────────── */
+    footer {
+      background: var(--ink);
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding-block: 2rem;
+    }
+
+    .footer-inner {
+      max-width: var(--max);
+      margin-inline: auto;
+      padding-inline: var(--gutter);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .footer-left {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: rgba(255,255,255,0.4);
+    }
+
+    .footer-right {
+      font-size: 0.78rem;
+      color: rgba(255,255,255,0.3);
+      line-height: 1.7;
+      text-align: right;
+    }
+
+    /* ── SCROLL REVEAL ─────────────────────── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(22px);
+      transition: opacity 0.65s ease, transform 0.65s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: none;
+    }
+
+    /* ── RESPONSIVE ────────────────────────── */
+    @media (max-width: 860px) {
+      #hero { grid-template-columns: 1fr; gap: 2.5rem; min-height: auto; }
+      .hero-visual { order: -1; }
+      .hero-stat-strip { flex-direction: column; gap: 1.5rem; }
+      .hero-stat { border-right: none; border-bottom: 1px solid var(--rule); padding-bottom: 1.5rem; margin-bottom: 0; }
+      .hero-stat:last-child { border-bottom: none; }
+      .mission-grid { grid-template-columns: 1fr; }
+      .approach-header { grid-template-columns: 1fr; }
+      .approach-steps { grid-template-columns: 1fr; }
+      .contact-grid { grid-template-columns: 1fr; }
+      .nav-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-inner">
+      <a href="#hero" class="nav-logo">
+        <img src="logo.png" alt="Seraphis logo" />
+        <span class="nav-wordmark">Seraphis</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#mission">Our Mission</a></li>
+        <li><a href="#approach">Our Approach</a></li>
+        <li><a href="#transparency">Transparency</a></li>
+        <li><a href="#trustees">Trustees</a></li>
+        <li><a href="#contact" class="nav-cta">Get in Touch</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section id="hero">
+    <div class="container" style="display:contents;">
+      <div class="hero-text container reveal">
+        <p class="overline">Seraphis · Children's Charity</p>
+        <h1>A new <em>approach</em> to child protection.</h1>
+        <p class="hero-lead">
+          Children always reach out for help: even in small, often invisible ways. We direct it
+          towards authorities, building a world where every child in need of help can
+          find it.
+        </p>
+        <div class="hero-actions">
+          <a href="#contact" class="btn-primary">Get in touch</a>
+          <a href="#transparency" class="btn-secondary">How we do it →</a>
+        </div>
+      </div>
+
+      <div class="hero-visual reveal" style="transition-delay:0.15s;">
+        <div class="hero-emblem">
+          <div class="emblem-ring"></div>
+          <div class="emblem-ring"></div>
+          <div class="emblem-ring"></div>
+          <img class="emblem-img" src="logo.png" alt="" aria-hidden="true" />
+        </div>
+      </div>
+
+      <div class="hero-stat-strip container reveal" style="transition-delay:0.3s;">
+        <div class="hero-stat">
+          <div class="hero-stat-number">90%</div>
+          <div class="hero-stat-label">Abuse victims who report negative experiences
+            trying to disclose
+          </div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-number">80%</div>
+          <div class="hero-stat-label">Directly try to tell someone they're being abused. 80% attempt the
+            biggest, scariest form of help-seeking. General help-seeking, including subtle kinds,
+            is effectively universal
+          </div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-number">Source</div>
+          <div class="hero-stat-label">NSPCC, 2013: "No one noticed, no one heard".
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MISSION -->
+  <section id="mission" class="section">
+    <div class="container">
+      <div class="rule-block reveal">
+        <span class="overline">Our Mission</span>
+      </div>
+      <div class="mission-grid">
+        <div class="reveal">
+          <p class="mission-statement">
+            "Every child will take a way out if it's shown to them"
+          </p>
+          <p class="mission-body">
+            The charity sector is struggling. Children's charities in particular
+            are in a survival mode, holding back the floodgates of a never-ending stream of horrific cases. No organisation
+            can handle this alone. The only answer is a fast-acting system where children can reach out before the cycles
+            of grooming escalate into irreversible abuse.
+            <br><br>We facilitate this by considering where children reach out, and using targeted interventions to align this towards authorities. A case study of our model is the now famous
+            disclosure space, where the presence of a safe space where children are told they can talk about anything leads to a large increase in abuse disclosures.
+            We would interpret this as increasing the chance that social help-seeking (directed at a friend) converts to formal help-seeking (directed at authorities).
+            This makes help-seeking more likely to convert into full disclosure.
+          </p>
+        </div>
+        <div class="mission-pillars reveal" style="transition-delay:0.2s;">
+          <div class="pillar">
+            <div class="pillar-number">01</div>
+            <h3>Only the child truly knows what is happening to them</h3>
+            <p>Systems which rely on external monitoring or teacher training are valuable, but will always miss cases.
+                The only totally reliable source is the child themselves.
+            </p>
+          </div>
+          <div class="pillar">
+            <div class="pillar-number">02</div>
+            <h3>Help-seeking is universal</h3>
+            <p>Whether it's a note in a diary or a police interview, the need for help will always be externalised somewhere.
+                If you can encourage that energy towards places it can be noticed, you can attack child abuse. 
+            </p>
+          </div>
+          <div class="pillar">
+            <div class="pillar-number">03</div>
+            <h3>The police aren't the problem; the funnel is</h3>
+            <p>Authorities aren't perfect, but blaming them for the rate of child abuse is misguided anger. In the developed world,
+                the bottleneck is those in need never entering the system, not the system failing them. An estimated 90% of child
+                abuse cases are never noticed.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- APPROACH -->
+  <section id="approach" class="section">
+    <div class="container">
+      <div class="approach-header">
+        <div class="reveal">
+          <div class="rule-block">
+            <span class="overline">Our Approach</span>
+          </div>
+          <h2>Prevention, not reaction.</h2>
+        </div>
+        <div class="reveal" style="transition-delay:0.15s;">
+          <p>Our approach is the first whose end goal is a world where child abuse cannot happen, while the rest of the sector has
+            a long-term goal to manage it more effectively. <br><br>
+            The standard approach is a million-miracle model: a million small miracles
+            have to take place to move a case perfectly through a system with a million steps. Our approach is the one-miracle model:
+            that the child can reach out. <br><br>
+            Nobody is capable of a million miracles. But the world, in trying to end child abuse, can achieve one.
+        </p>
+        </div>
+      </div>
+
+      <div class="approach-steps reveal" style="transition-delay:0.25s;">
+        <div class="step">
+          <div class="step-index">01</div>
+          <h3>Measurement</h3>
+          <p>We use real research to map out help-seeking patterns. The result is called a Markov chain - jargon for a set of measurements like "10% chance telling a friend turns into telling a teacher"
+            for different types of help-seeking.
+          </p>
+        </div>
+        <div class="step">
+          <div class="step-index">02</div>
+          <h3>Analysis</h3>
+          <p>We then target interventions, find exactly what connections need to be strengthened or weakened
+            to make help-seeking end up with authorities over time. Mathematicians call this reducing the spectral gap.
+            Our method for it is called the Chambers algorithm.
+         </p>
+        </div>
+        <div class="step">
+          <div class="step-index">03</div>
+          <h3>Infrastructure</h3>
+          <p>Building interventions to isolate and target those connections. The entire range of research-backed interventions are available to us. However, we focus on building Infrastructure
+            to fit into a school's existing safeguarding system. Handling disclosures ourselves at scale is too centralised and introduces unnecessary risk. We work with
+             authority, not outside of it.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TRANSPARENCY -->
+  <section id="transparency" class="section">
+    <div class="container">
+      <div class="rule-block reveal">
+        <span class="overline">Transparency</span>
+      </div>
+      <div class="transparency-intro reveal">
+        <h2>Open by design.</h2>
+        <p>These documents will be available by Friday 17th April 2026.</p>
+        <p>The public deserves to trust us, particularly as a young and novel organisation tackling such a sensitive issue. We go above and beyond other charities in transparency for this reason.
+            Every document below is available because we choose to make it so.
+        </p>
+      </div>
+
+      <div class="doc-grid reveal" style="transition-delay:0.15s;">
+
+        <a href="[link-to-governing-document]" class="doc-card" target="_blank" rel="noopener">
+          <div class="doc-icon">
+            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          </div>
+          <div class="doc-title">Governing Document</div>
+          <div class="doc-desc">Our constitution, which is the legal rulebook of Seraphis.</div>
+          <div class="doc-link">View document →</div>
+        </a>
+
+        <a href="[link-to-charity-commission-application]" class="doc-card" target="_blank" rel="noopener">
+          <div class="doc-icon">
+            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+          </div>
+          <div class="doc-title">Charity Commission Application</div>
+          <div class="doc-desc">As we are in the process of receiving a charity number, you are welcome to see our full application.</div>
+          <div class="doc-link">View document →</div>
+        </a>
+
+        <a href="[link-to-safeguarding-policy]" class="doc-card" target="_blank" rel="noopener">
+          <div class="doc-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <div class="doc-title">Safeguarding Policy</div>
+          <div class="doc-desc">Children's safety is our first responsibility. This is our exact set of policies.</div>
+          <div class="doc-link">View document →</div>
+        </a>
+
+        <a href="[link-to-any-fourth-doc-or-remove]" class="doc-card" target="_blank" rel="noopener">
+          <div class="doc-icon">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </div>
+          <div class="doc-title">Mathematical Handbook</div>
+          <div class="doc-desc">We've alluded to technical analysis and complexity. This is the detail, written at an undergraduate level.</div>
+          <div class="doc-link">View document →</div>
+        </a>
+
+      </div>
+
+      <p class="charity-notice reveal" style="transition-delay:0.3s;">
+        <strong>Please note:</strong> Seraphis is currently a charity in formation. Our Charity Commission application reference is 5288931. We are not yet a registered charity and do not use a registered charity number. This will be updated on approval.
+      </p>
+    </div>
+  </section>
+
+  <!-- TRUSTEES -->
+  <section id="trustees" class="section">
+    <div class="container">
+      <div class="trustees-header">
+        <div class="reveal">
+          <div class="rule-block">
+            <span class="overline">Our Trustees</span>
+          </div>
+          <h2>Who is responsible.</h2>
+        </div>
+        <p class="reveal" style="transition-delay:0.1s;">Being a youth-run organisation, we have chosen the flexible CIO structure of charity.
+            The Board of Directors provides oversight and governance. However, we are currently open to trustee applications.
+        </p>
+      </div>
+
+      <div class="trustees-grid">
+
+        <!-- Repeat this block per trustee. Remove the <img> tag and keep initials if no photo. -->
+        <div class="trustee-card reveal">
+          <div class="trustee-avatar">SG</div>
+          <div class="trustee-name">Sebastian Gordon</div>
+          <div class="trustee-role">Chair</div>
+          <p class="trustee-bio">A young member of the board who played a key role supporting Seraphis' formation. Sebastian has a record of reliability, mature governance, and good decision-making.
+        </div>
+
+        <div class="trustee-card reveal" style="transition-delay:0.08s;">
+          <div class="trustee-avatar">SW</div>
+          <div class="trustee-name">Stephen Ward</div>
+          <div class="trustee-role">Dual trustee/CEO</div>
+          <p class="trustee-bio">The CEO also sitting on the board of a charity is common and accepted at the startup phase. We are however looking for a replacement to separate 
+            the roles as part of our commitment to good governance.
+          </p>
+        </div>
+
+        <div class="trustee-card reveal" style="transition-delay:0.16s;">
+          <div class="trustee-avatar">AW</div>
+          <div class="trustee-name">Andrew Ward</div>
+          <div class="trustee-role">Treasurer</div>
+          <p class="trustee-bio">An older and experienced trustee with expansive corporate experience and history working with children.</p>
+        </div>
+
+        <div class="trustee-card reveal" style="transition-delay:0.24s;">
+          <div class="trustee-avatar">?</div>
+          <div class="trustee-name">Future Availability</div>
+          <div class="trustee-role">Trustee</div>
+          <p class="trustee-bio">Rapidly growing organisations require adaptable governance. Moreso we are aware of the need for strong expertise, and we welcome enquiries from those
+            with relevant skills and experience.
+          </p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <section id="contact" class="section">
+    <div class="container">
+      <div class="rule-block reveal">
+        <span class="overline">Contact</span>
+      </div>
+      <div class="contact-grid">
+        <div class="reveal">
+          <h2>Let's talk.</h2>
+          <p class="contact-body">
+            Seraphis has an all-contact policy. Any person or organisation who would like to contact us should feel 
+            welcome. At this time our preferred method of contact is
+        </p>
+          <div class="contact-email-block">
+            <span class="contact-email-label">Email us</span>
+            <a href="mailto:hello@yourcharity.org" class="contact-email">contact@seraphis.org.uk</a>
+          </div>
+        </div>
+
+        <div class="contact-aside reveal" style="transition-delay:0.15s;">
+          <div class="contact-detail">
+            <div class="contact-detail-label">Response time</div>
+            <div class="contact-detail-value">We aim to respond to all enquiries within two working days.</div>
+          </div>
+          <div class="contact-detail">
+            <div class="contact-detail-label">Press enquiries</div>
+            <div class="contact-detail-value">Seraphis understands the value of the media and aims to be as helpful to journalists as possible.
+                Please include your publication and deadline in your email, and we will assist you.</div>
+          </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-left">Seraphis</div>
+      <div class="footer-right">
+        Charity Commission application in progress · Application no. 5288931<br />
+        &copy; <span id="year"></span> Seraphis. All rights reserved.
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12 });
+
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+  </script>
+
+</body>
+</html>
