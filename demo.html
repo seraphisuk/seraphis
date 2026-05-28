@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wellbeing Task</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Space Mono', monospace;
+            background: linear-gradient(135deg, #0f0f1e 0%, #1a1a2e 100%);
+            color: #e0e0e0;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .intro-screen, .game-screen, .end-screen {
+            display: none;
+            text-align: center;
+            padding: 40px;
+            max-width: 800px;
+        }
+        
+        .intro-screen.active, .game-screen.active, .end-screen.active {
+            display: block;
+        }
+        
+        .intro-screen h1 {
+            font-size: 2.5em;
+            margin-bottom: 30px;
+            color: #ffffff;
+            letter-spacing: -1px;
+        }
+        
+        .intro-screen p {
+            font-size: 1.2em;
+            line-height: 1.8;
+            margin-bottom: 40px;
+            color: #b0b0b0;
+        }
+        
+        .start-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            padding: 18px 60px;
+            font-size: 1.3em;
+            font-family: 'Space Mono', monospace;
+            font-weight: 700;
+            color: white;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .start-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(102, 126, 234, 0.4);
+        }
+        
+        .game-screen {
+            width: 100%;
+            max-width: 1200px;
+        }
+        
+        .health-container {
+            margin-bottom: 60px;
+        }
+        
+        .health-label {
+            font-size: 0.9em;
+            color: #808080;
+            margin-bottom: 12px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+        
+        .health-bar-outer {
+            width: 100%;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+        
+        .health-bar-inner {
+            height: 100%;
+            width: 60%;
+            background: linear-gradient(90deg, #ff6b6b 0%, #ffd93d 50%, #6bcf7f 100%);
+            transition: width 0.3s ease;
+            border-radius: 20px;
+            box-shadow: 0 0 20px rgba(107, 207, 127, 0.6);
+        }
+        
+        .timer {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 1.2em;
+            color: #808080;
+            font-weight: 700;
+        }
+        
+        .decks-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 30px;
+            margin-top: 40px;
+        }
+        
+        .deck {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 40px 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            border: 2px solid transparent;
+            min-height: 280px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .deck:hover:not(.disabled) {
+            transform: translateY(-8px);
+            border-color: currentColor;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+        }
+        
+        .deck.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        
+        .deck.cooldown {
+            opacity: 0.6;
+        }
+        
+        .deck-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+        
+        .deck-name {
+            font-size: 1.4em;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        
+        .deck-cooldown {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 0.9em;
+            color: #ffffff;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: 700;
+        }
+        
+        .deck-warning {
+            position: absolute;
+            bottom: 15px;
+            font-size: 0.85em;
+            color: #ffd93d;
+            font-weight: 700;
+            opacity: 0.8;
+        }
+        
+        #vault {
+            color: #9e9e9e;
+            border-color: #9e9e9e;
+        }
+        
+        #surge {
+            color: #ff4757;
+            border-color: #ff4757;
+        }
+        
+        #circle {
+            color: #26d0ce;
+            border-color: #26d0ce;
+        }
+        
+        #beacon {
+            color: #ffd93d;
+            border-color: #ffd93d;
+        }
+        
+        .feedback {
+            position: absolute;
+            font-size: 2em;
+            font-weight: 700;
+            pointer-events: none;
+            animation: float-up 1s ease-out forwards;
+            z-index: 1000;
+        }
+        
+        .feedback.positive {
+            color: #6bcf7f;
+        }
+        
+        .feedback.negative {
+            color: #ff4757;
+        }
+        
+        @keyframes float-up {
+            0% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-60px);
+            }
+        }
+        
+        .end-screen h1 {
+            font-size: 3em;
+            margin-bottom: 30px;
+        }
+        
+        .end-screen.win h1 {
+            color: #6bcf7f;
+        }
+        
+        .end-screen.loss h1 {
+            color: #ff4757;
+        }
+        
+        .end-screen p {
+            font-size: 1.3em;
+            margin-bottom: 40px;
+            color: #b0b0b0;
+        }
+        
+        .download-btn {
+            background: #667eea;
+            border: none;
+            padding: 15px 50px;
+            font-size: 1.2em;
+            font-family: 'Space Mono', monospace;
+            font-weight: 700;
+            color: white;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        
+        .download-btn:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+        }
+        
+        @media (max-width: 900px) {
+            .decks-container {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Intro Screen -->
+    <div class="intro-screen active">
+        <h1>Seraphis Task</h1>
+        <p>Your health is draining. Four paths lie before you.<br>Choose wisely and survive.</p>
+        <button class="start-btn" onclick="startGame()">Begin</button>
+    </div>
+
+    <!-- Game Screen -->
+    <div class="game-screen">
+        <div class="timer" id="timer">5:00</div>
+        
+        <div class="health-container">
+            <div class="health-label">Wellbeing</div>
+            <div class="health-bar-outer">
+                <div class="health-bar-inner" id="healthBar"></div>
+            </div>
+        </div>
+        
+        <div class="decks-container">
+            <div class="deck" id="vault" onclick="chooseDeck('vault')">
+                <div class="deck-icon">🔒</div>
+                <div class="deck-name">Vault</div>
+                <div class="deck-cooldown" style="display: none;"></div>
+            </div>
+            
+            <div class="deck" id="surge" onclick="chooseDeck('surge')">
+                <div class="deck-icon">⚡</div>
+                <div class="deck-name">Risk</div>
+                <div class="deck-cooldown" style="display: none;"></div>
+            </div>
+            
+            <div class="deck" id="circle" onclick="chooseDeck('circle')">
+                <div class="deck-icon">🤝</div>
+                <div class="deck-name">Reach</div>
+                <div class="deck-cooldown" style="display: none;"></div>
+            </div>
+            
+            <div class="deck" id="beacon" onclick="chooseDeck('beacon')">
+                <div class="deck-icon">🏛️</div>
+                <div class="deck-name">Beacon</div>
+                <div class="deck-cooldown" style="display: none;"></div>
+                <div class="deck-warning">WARNING! Long cooldown.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- End Screen -->
+    <div class="end-screen">
+        <h1 id="endTitle"></h1>
+        <p id="endMessage"></p>
+        <button class="download-btn" onclick="restartGame()">Restart</button>
+    </div>
+
+    <script>
+        // Game state
+        let health = 60;
+        let timeRemaining = 300; // 5 minutes in seconds
+        let gameStartTime;
+        let gameActive = false;
+        let declineInterval;
+        let timerInterval;
+        let sessionData = [];
+        let sessionId = Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        let firstClick = true;
+        let finalResult = '';
+        
+        // GLOBAL cooldown system
+        let globalCooldownActive = false;
+        let currentCooldownDeck = null;
+        
+        // Deck cooldowns (in ms)
+        const deckCooldowns = {
+            vault: 1000,
+            surge: 1000,
+            circle: 1000,
+            beacon: 8000
+        };
+        
+        // Google Sheets webhook
+        const WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbw6IJ8wzX23wZp0u4CZJKoZGUgRe4r-fqx8gflwBIE93hjzOna-i64IiwYsgSiROK142A/exec';
+        
+        // Audio context for sounds
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playSound(frequency, duration, type = 'positive') {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = frequency;
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + duration);
+        }
+        
+        function startGame() {
+            document.querySelector('.intro-screen').classList.remove('active');
+            document.querySelector('.game-screen').classList.add('active');
+            
+            gameStartTime = Date.now();
+            gameActive = true;
+            firstClick = true;
+            sessionData = [];
+            health = 60;
+            timeRemaining = 300;
+            globalCooldownActive = false;
+            currentCooldownDeck = null;
+            
+            // Start decline
+            declineInterval = setInterval(updateDecline, 100); // Update every 100ms for smooth animation
+            
+            // Start timer
+            timerInterval = setInterval(updateTimer, 1000);
+            
+            updateHealthBar();
+        }
+        
+        function updateDecline() {
+            if (!gameActive) return;
+            
+            // Calculate decline rate based on current health
+            // 0.8%/sec at 0-50%
+            // 1.2%/sec at 50-70%
+            // 2.0%/sec at 70-100%
+            let declineRate;
+            if (health <= 50) {
+                declineRate = 0.8;
+            } else if (health <= 70) {
+                declineRate = 0.8 + ((health - 50) / 20) * 0.4; // 0.8 to 1.2
+            } else {
+                declineRate = 1.2 + ((health - 70) / 30) * 0.8; // 1.2 to 2.0
+            }
+            
+            // Apply decline (per 100ms)
+            health -= (declineRate / 10);
+            
+            updateHealthBar();
+            checkGameEnd();
+        }
+        
+        function updateTimer() {
+            timeRemaining--;
+            
+            const minutes = Math.floor(timeRemaining / 60);
+            const seconds = timeRemaining % 60;
+            document.getElementById('timer').textContent = 
+                `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            
+            if (timeRemaining <= 0) {
+                endGame('timeout');
+            }
+        }
+        
+        function updateHealthBar() {
+            const clampedHealth = Math.max(0, Math.min(100, health));
+            document.getElementById('healthBar').style.width = clampedHealth + '%';
+        }
+        
+        function chooseDeck(deckName) {
+            if (!gameActive) return;
+            if (globalCooldownActive) return; // Global cooldown prevents all clicks
+            
+            const deck = document.getElementById(deckName);
+            
+            // Record pre-action health
+            const preHealth = health;
+            
+            // Calculate outcome
+            let outcome;
+            const rand = Math.random();
+            
+            // FIRST CLICK OVERRIDE - guarantee positive outcome
+            if (firstClick) {
+                switch(deckName) {
+                    case 'vault':
+                        outcome = 0.8;
+                        break;
+                    case 'surge':
+                        outcome = 7;
+                        break;
+                    case 'circle':
+                        outcome = 3;
+                        break;
+                    case 'beacon':
+                        outcome = 25;
+                        break;
+                }
+                firstClick = false;
+            } else {
+                // Normal outcome calculation
+                switch(deckName) {
+                    case 'vault':
+                        outcome = 0.8;
+                        break;
+                        
+                    case 'surge':
+                        if (rand < 0.80) {
+                            outcome = 7;
+                        } else {
+                            outcome = -40;
+                        }
+                        break;
+                        
+                    case 'circle':
+                        if (rand < 0.80) {
+                            outcome = 3;
+                        } else {
+                            outcome = -2;
+                        }
+                        break;
+                        
+                    case 'beacon':
+                        if (rand < 0.90) {
+                            outcome = 25;
+                        } else {
+                            outcome = -5;
+                        }
+                        break;
+                }
+            }
+            
+            // Apply outcome
+            health += outcome;
+            health = Math.max(0, Math.min(100, health));
+            
+            // Visual feedback
+            showFeedback(deck, outcome);
+            
+            // Sound feedback
+            if (outcome > 0) {
+                playSound(800, 0.1, 'positive');
+            } else {
+                playSound(200, 0.15, 'negative');
+            }
+            
+            // Update bar
+            updateHealthBar();
+            
+            // Record data
+            const lastClickTime = sessionData.length > 0 ? sessionData[sessionData.length - 1].timestamp : 0;
+            const currentTime = (Date.now() - gameStartTime) / 1000;
+            
+            sessionData.push({
+                timestamp: currentTime.toFixed(3),
+                deck: deckName,
+                preHealth: preHealth.toFixed(2),
+                outcome: outcome.toFixed(2),
+                postHealth: health.toFixed(2),
+                timeSinceLastClick: lastClickTime === 0 ? 0 : (currentTime - lastClickTime).toFixed(3)
+            });
+            
+            // Start GLOBAL cooldown
+            startGlobalCooldown(deckName);
+            
+            // Check game end
+            checkGameEnd();
+        }
+        
+        function startGlobalCooldown(deckName) {
+            globalCooldownActive = true;
+            currentCooldownDeck = deckName;
+            
+            // Disable all decks visually
+            const allDecks = ['vault', 'surge', 'circle', 'beacon'];
+            allDecks.forEach(name => {
+                document.getElementById(name).classList.add('cooldown');
+            });
+            
+            // Show cooldown only on the clicked deck
+            const deck = document.getElementById(deckName);
+            const cooldownDisplay = deck.querySelector('.deck-cooldown');
+            cooldownDisplay.style.display = 'block';
+            
+            const cooldownDuration = deckCooldowns[deckName];
+            const startTime = Date.now();
+            
+            const cooldownInterval = setInterval(() => {
+                const elapsed = Date.now() - startTime;
+                const remaining = Math.ceil((cooldownDuration - elapsed) / 1000);
+                
+                if (remaining > 0) {
+                    cooldownDisplay.textContent = remaining + 's';
+                } else {
+                    // End global cooldown
+                    cooldownDisplay.style.display = 'none';
+                    allDecks.forEach(name => {
+                        document.getElementById(name).classList.remove('cooldown');
+                    });
+                    globalCooldownActive = false;
+                    currentCooldownDeck = null;
+                    clearInterval(cooldownInterval);
+                }
+            }, 100);
+        }
+        
+        function showFeedback(deck, value) {
+            const feedback = document.createElement('div');
+            feedback.className = 'feedback ' + (value > 0 ? 'positive' : 'negative');
+            feedback.textContent = (value > 0 ? '+' : '') + value.toFixed(1) + '%';
+            
+            const rect = deck.getBoundingClientRect();
+            feedback.style.position = 'fixed';
+            feedback.style.left = rect.left + rect.width / 2 - 40 + 'px';
+            feedback.style.top = rect.top + 'px';
+            
+            document.body.appendChild(feedback);
+            
+            setTimeout(() => feedback.remove(), 1000);
+        }
+        
+        function checkGameEnd() {
+            if (health >= 100) {
+                endGame('win');
+            } else if (health <= 0) {
+                endGame('loss');
+            }
+        }
+        
+        function endGame(result) {
+            gameActive = false;
+            clearInterval(declineInterval);
+            clearInterval(timerInterval);
+            finalResult = result;
+            
+            document.querySelector('.game-screen').classList.remove('active');
+            const endScreen = document.querySelector('.end-screen');
+            endScreen.classList.add('active');
+            
+            if (result === 'win') {
+                endScreen.classList.add('win');
+                endScreen.classList.remove('loss');
+                document.getElementById('endTitle').textContent = 'Sustained';
+                document.getElementById('endMessage').textContent = 'You found what worked.';
+            } else if (result === 'loss') {
+                endScreen.classList.add('loss');
+                endScreen.classList.remove('win');
+                document.getElementById('endTitle').textContent = 'Depleted';
+                document.getElementById('endMessage').textContent = 'The paths you chose weren\'t enough.';
+            } else {
+                endScreen.classList.add('loss');
+                endScreen.classList.remove('win');
+                document.getElementById('endTitle').textContent = 'Time Expired';
+                document.getElementById('endMessage').textContent = 'Time ran out before you could win.';
+            }
+            
+            // Auto-upload data
+            uploadData();
+        }
+        
+        function uploadData() {
+            const payload = {
+                session_id: sessionId,
+                final_result: finalResult,
+                trials: sessionData
+            };
+            
+            fetch(WEBHOOK_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload)
+            }).then(() => {
+                console.log('Data uploaded successfully');
+            }).catch(err => {
+                console.error('Upload failed:', err);
+            });
+        }
+        
+        function restartGame() {
+            // Reset end screen
+            document.querySelector('.end-screen').classList.remove('active', 'win', 'loss');
+            
+            // Generate new session ID
+            sessionId = Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            
+            // Show intro screen
+            document.querySelector('.intro-screen').classList.add('active');
+        }
+    </script>
+</body>
+</html>
