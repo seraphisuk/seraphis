@@ -279,7 +279,7 @@
     <!-- Intro Screen -->
     <div class="intro-screen active">
         <h1>Seraphis Task</h1>
-        <p>Your health is draining. Four paths lie before you.<br>Choose wisely and survive.</p>
+        <p>Choose between four options..<br>Reach full health to win; don't run out.</p>
         <button class="start-btn" onclick="startGame()">Begin</button>
     </div>
 
@@ -288,7 +288,7 @@
         <div class="timer" id="timer">5:00</div>
         
         <div class="health-container">
-            <div class="health-label">Wellbeing</div>
+            <div class="health-label">Health</div>
             <div class="health-bar-outer">
                 <div class="health-bar-inner" id="healthBar"></div>
             </div>
@@ -303,7 +303,7 @@
             
             <div class="deck" id="surge" onclick="chooseDeck('surge')">
                 <div class="deck-icon">⚡</div>
-                <div class="deck-name">Risk</div>
+                <div class="deck-name">Surge</div>
                 <div class="deck-cooldown" style="display: none;"></div>
             </div>
             
@@ -485,8 +485,8 @@
                         }
                         break;
                         
-                    case 'circle':
-                        if (rand < 0.80) {
+                    case 'risk':
+                        if (rand < 0.70) {
                             outcome = 3;
                         } else {
                             outcome = -2;
@@ -495,9 +495,9 @@
                         
                     case 'beacon':
                         if (rand < 0.90) {
-                            outcome = 25;
+                            outcome = 20;
                         } else {
-                            outcome = -5;
+                            outcome = 0;
                         }
                         break;
                 }
@@ -613,18 +613,18 @@
             if (result === 'win') {
                 endScreen.classList.add('win');
                 endScreen.classList.remove('loss');
-                document.getElementById('endTitle').textContent = 'Sustained';
-                document.getElementById('endMessage').textContent = 'You found what worked.';
+                document.getElementById('endTitle').textContent = 'Victory';
+                document.getElementById('endMessage').textContent = 'Congratulations and thank you for playing. Share the demo with a friend. 100 plays means we can publish our research.';
             } else if (result === 'loss') {
                 endScreen.classList.add('loss');
                 endScreen.classList.remove('win');
-                document.getElementById('endTitle').textContent = 'Depleted';
-                document.getElementById('endMessage').textContent = 'The paths you chose weren\'t enough.';
+                document.getElementById('endTitle').textContent = 'Mistaken';
+                document.getElementById('endMessage').textContent = 'Thank you for playing. This game only allows one try. That said, please share the game with a friend. 100 plays means we can publish our research.';
             } else {
                 endScreen.classList.add('loss');
                 endScreen.classList.remove('win');
-                document.getElementById('endTitle').textContent = 'Time Expired';
-                document.getElementById('endMessage').textContent = 'Time ran out before you could win.';
+                document.getElementById('endTitle').textContent = 'Time Ran Out';
+                document.getElementById('endMessage').textContent = 'Thank you for playing. This game only allows one try. Please share the game with a friend. 100 plays means we can publish our research.';
             }
             
             // Auto-upload data
