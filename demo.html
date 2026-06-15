@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Seraphis Task</title>
+    <title>Wellbeing Task</title>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
         * {
@@ -105,31 +105,27 @@
         }
         
         .timer {
-            position: absolute;
-            top: 20px;
-            right: 20px;
             font-size: 1.2em;
             color: #808080;
             font-weight: 700;
-            z-index: 10;
         }
         
         .decks-container {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 30px;
-            margin-top: 40px;
+            gap: 15px;
+            margin-top: 20px;
         }
         
         .deck {
             background: rgba(255, 255, 255, 0.05);
-            border-radius: 16px;
-            padding: 30px 15px;
+            border-radius: 12px;
+            padding: 15px 10px;
             cursor: pointer;
             transition: all 0.3s ease;
             position: relative;
             border: 2px solid transparent;
-            min-height: 220px;
+            min-height: 140px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -137,9 +133,9 @@
         }
         
         .deck:hover:not(.disabled) {
-            transform: translateY(-8px);
+            transform: translateY(-4px);
             border-color: currentColor;
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
         }
         
         .deck.disabled {
@@ -152,41 +148,41 @@
         }
         
         .deck-icon {
-            font-size: 4em;
-            margin-bottom: 15px;
+            font-size: 3em;
+            margin-bottom: 8px;
         }
         
         .deck-name {
-            font-size: 1.4em;
+            font-size: 1.1em;
             font-weight: 700;
             letter-spacing: 1px;
             text-transform: uppercase;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
         
         .deck-cooldown {
             position: absolute;
-            top: 15px;
-            right: 15px;
-            font-size: 0.9em;
+            top: 10px;
+            right: 10px;
+            font-size: 0.75em;
             color: #ffffff;
             background: rgba(0, 0, 0, 0.6);
-            padding: 4px 10px;
-            border-radius: 12px;
+            padding: 3px 8px;
+            border-radius: 10px;
             font-weight: 700;
         }
         
         .deck-warning {
             position: absolute;
-            bottom: 12px;
-            left: 12px;
-            right: 12px;
-            font-size: 0.75em;
+            bottom: 8px;
+            left: 6px;
+            right: 6px;
+            font-size: 0.65em;
             color: #ffd93d;
             font-weight: 700;
             opacity: 0.9;
             text-align: center;
-            line-height: 1.3;
+            line-height: 1.2;
         }
         
         #vault {
@@ -403,10 +399,12 @@
 
     <!-- Game Screen -->
     <div class="game-screen">
-        <div class="timer" id="timer">5:00</div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div style="font-size: 0.9em; color: #808080; letter-spacing: 2px; text-transform: uppercase;">Health</div>
+            <div class="timer" id="timer">5:00</div>
+        </div>
         
         <div class="health-container">
-            <div class="health-label">Health</div>
             <div class="health-bar-outer">
                 <div class="health-bar-inner" id="healthBar"></div>
             </div>
@@ -604,7 +602,7 @@
                         break;
                         
                     case 'reach':
-                        if (rand < 0.80) {
+                        if (rand < 0.70) {
                             outcome = 3;
                         } else {
                             outcome = -2;
@@ -613,9 +611,9 @@
                         
                     case 'beacon':
                         if (rand < 0.90) {
-                            outcome = 25;
+                            outcome = 20;
                         } else {
-                            outcome = -5;
+                            outcome = 0;
                         }
                         break;
                 }
