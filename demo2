@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BART — Balloon Analogue Risk Task</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#1B1F27;
+    --panel:#242933;
+    --panel-2:#1F242C;
+    --border:#333A46;
+    --text:#ECE9E2;
+    --text-dim:#9AA0AC;
+    --amber:#E8A33D;
+    --amber-dim:#7A5A28;
+    --red:#D9534F;
+    --sage:#6FA88A;
+    --sage-dim:#3E5A4C;
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+  }
+
+  *{box-sizing:border-box;}
+
+  body{
+    margin:0;
+    min-height:100vh;
+    background:
+      radial-gradient(circle at 1px 1px, rgba(255,255,255,0.035) 1px, transparent 0) 0 0/22px 22px,
+      var(--bg);
+    color:var(--text);
+    font-family:var(--font-display);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+  }
+
+  .console{
+    width:100%;
+    max-width:720px;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:14px;
+    box-shadow:0 30px 60px -20px rgba(0,0,0,0.6);
+    overflow:hidden;
+  }
+
+  /* header */
+  .console-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:18px 22px;
+    border-bottom:1px solid var(--border);
+    background:var(--panel-2);
+  }
+  .brand{display:flex; align-items:baseline; gap:10px;}
+  .brand-mark{
+    font-family:var(--font-mono);
+    font-size:12px;
+    letter-spacing:0.12em;
+    color:var(--amber);
+    border:1px solid var(--amber-dim);
+    padding:2px 7px;
+    border-radius:4px;
+  }
+  .brand-name{font-size:15px; font-weight:600; color:var(--text-dim); letter-spacing:0.02em;}
+  .head-stats{
+    display:flex; gap:20px;
+    font-family:var(--font-mono);
+    font-size:13px;
+    color:var(--text-dim);
+  }
+  .head-stats b{color:var(--text); font-weight:600;}
+
+  /* body */
+  .console-body{padding:26px 22px 8px;}
+
+  .stage{
+    display:grid;
+    grid-template-columns:1.15fr 0.85fr;
+    gap:18px;
+    margin-bottom:20px;
+  }
+  @media (max-width:520px){ .stage{grid-template-columns:1fr;} }
+
+  .balloon-panel, .gauge-panel{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:16px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:space-between;
+    min-height:260px;
+  }
+
+  .balloon-stage{
+    flex:1;
+    width:100%;
+    display:flex;
+    align-items:flex-end;
+    justify-content:center;
+    position:relative;
+  }
+
+  #balloonSvg{ overflow:visible; transition:transform 0.08s ease-out; }
+
+  .balloon-readout{
+    font-family:var(--font-mono);
+    text-align:center;
+    margin-top:10px;
+  }
+  .balloon-readout .val{font-size:26px; font-weight:600; color:var(--amber);}
+  .balloon-readout .lbl{font-size:11px; color:var(--text-dim); letter-spacing:0.08em; text-transform:uppercase;}
+
+  .gauge-panel{justify-content:flex-start;}
+  .gauge-title{font-family:var(--font-mono); font-size:11px; color:var(--text-dim); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:6px; align-self:flex-start;}
+
+  .dial-wrap{ position:relative; width:100%; display:flex; justify-content:center; margin-top:6px;}
+
+  .gauge-readout{margin-top:8px; text-align:center; font-family:var(--font-mono);}
+  .gauge-readout .val{font-size:22px; font-weight:600;}
+  .gauge-readout .lbl{font-size:10px; color:var(--text-dim); letter-spacing:0.08em; text-transform:uppercase;}
+
+  .log-line{
+    margin-top:10px;
+    font-family:var(--font-mono);
+    font-size:12px;
+    color:var(--text-dim);
+    min-height:16px;
+    text-align:center;
+  }
+  .log-line.danger{ color:var(--red); }
+  .log-line.success{ color:var(--sage); }
+
+  /* controls */
+  .controls{
+    display:flex;
+    gap:12px;
+    margin-bottom:22px;
+  }
+  button{
+    font-family:var(--font-display);
+    font-weight:600;
+    font-size:15px;
+    border-radius:8px;
+    border:1px solid transparent;
+    padding:14px 18px;
+    cursor:pointer;
+    transition:transform 0.05s ease, filter 0.15s ease, opacity 0.15s ease;
+    flex:1;
+  }
+  button:active{ transform:translateY(1px); }
+  button:disabled{ opacity:0.35; cursor:not-allowed; }
+  button:focus-visible{ outline:2px solid var(--amber); outline-offset:2px; }
+
+  .btn-pump{
+    background:var(--amber);
+    color:#231705;
+  }
+  .btn-pump:hover:not(:disabled){ filter:brightness(1.08); }
+
+  .btn-collect{
+    background:transparent;
+    color:var(--sage);
+    border-color:var(--sage-dim);
+  }
+  .btn-collect:hover:not(:disabled){ background:rgba(111,168,138,0.1); }
+
+  /* trial log table */
+  .log-panel{
+    border-top:1px solid var(--border);
+    padding:14px 22px 20px;
+  }
+  .log-panel-title{
+    font-family:var(--font-mono);
+    font-size:11px;
+    color:var(--text-dim);
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    margin-bottom:8px;
+  }
+  .log-table-wrap{ max-height:120px; overflow-y:auto; border:1px solid var(--border); border-radius:8px; }
+  table{ width:100%; border-collapse:collapse; font-family:var(--font-mono); font-size:12px; }
+  th,td{ text-align:left; padding:6px 10px; }
+  thead th{ position:sticky; top:0; background:var(--panel-2); color:var(--text-dim); font-weight:500; border-bottom:1px solid var(--border); }
+  tbody tr:nth-child(odd){ background:rgba(255,255,255,0.02); }
+  td.pop{ color:var(--red); }
+  td.bank{ color:var(--sage); }
+
+  /* summary screen */
+  .summary{ padding:26px 22px; display:none; }
+  .summary h2{ margin:0 0 4px; font-size:20px; }
+  .summary p.sub{ margin:0 0 20px; color:var(--text-dim); font-size:13px; }
+  .summary-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:10px;
+    margin-bottom:20px;
+  }
+  .stat-card{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:12px;
+    text-align:center;
+  }
+  .stat-card .val{ font-family:var(--font-mono); font-size:20px; font-weight:600; color:var(--amber); }
+  .stat-card .lbl{ font-family:var(--font-mono); font-size:10px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.08em; margin-top:3px;}
+
+  .export-row{ display:flex; gap:10px; align-items:center; margin-bottom:14px; }
+  .btn-ghost{
+    background:transparent; color:var(--text-dim); border-color:var(--border); font-size:13px; padding:9px 14px; flex:none;
+  }
+  .btn-ghost:hover{ color:var(--text); border-color:var(--text-dim); }
+  .hint{ font-family:var(--font-mono); font-size:11px; color:var(--text-dim); }
+
+  .btn-restart{ width:100%; background:var(--amber); color:#231705; }
+
+  .shake{ animation:shake 0.4s; }
+  @keyframes shake{
+    10%,90%{ transform:translateX(-2px); }
+    20%,80%{ transform:translateX(4px); }
+    30%,50%,70%{ transform:translateX(-8px); }
+    40%,60%{ transform:translateX(8px); }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation:none !important; transition:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="console" id="console">
+
+  <div class="console-head">
+    <div class="brand">
+      <span class="brand-mark">BART</span>
+      <span class="brand-name">Balloon Analogue Risk Task</span>
+    </div>
+    <div class="head-stats">
+      <span>BALLOON <b id="trialNum">1</b>/<span id="trialTotal">20</span></span>
+      <span>TOTAL <b id="totalEarnings">$0.00</b></span>
+    </div>
+  </div>
+
+  <div id="taskView">
+    <div class="console-body">
+      <div class="stage">
+        <div class="balloon-panel">
+          <div class="balloon-stage">
+            <svg id="balloonSvg" width="140" height="170" viewBox="0 0 140 170">
+              <ellipse id="balloonBody" cx="70" cy="80" rx="46" ry="52" fill="url(#balloonGrad)" stroke="#171b21" stroke-width="2"/>
+              <path d="M70 132 L64 142 L76 142 Z" fill="#171b21"/>
+              <line x1="70" y1="142" x2="70" y2="165" stroke="#5a6170" stroke-width="1.5" stroke-dasharray="2 3"/>
+              <defs>
+                <radialGradient id="balloonGrad" cx="35%" cy="30%" r="75%">
+                  <stop offset="0%" stop-color="#F4C572"/>
+                  <stop offset="55%" stop-color="#E8A33D"/>
+                  <stop offset="100%" stop-color="#C97F22"/>
+                </radialGradient>
+              </defs>
+            </svg>
+          </div>
+          <div class="balloon-readout">
+            <div class="val" id="balloonEarnings">$0.00</div>
+            <div class="lbl">this balloon</div>
+          </div>
+        </div>
+
+        <div class="gauge-panel">
+          <div class="gauge-title">Pressure</div>
+          <div class="dial-wrap">
+            <svg width="150" height="90" viewBox="0 0 150 90">
+              <path d="M10 85 A65 65 0 0 1 140 85" fill="none" stroke="#333A46" stroke-width="10" stroke-linecap="round"/>
+              <path id="gaugeArc" d="M10 85 A65 65 0 0 1 140 85" fill="none" stroke="#E8A33D" stroke-width="10" stroke-linecap="round" stroke-dasharray="204 204" stroke-dashoffset="204"/>
+              <line id="gaugeNeedle" x1="75" y1="85" x2="75" y2="30" stroke="#ECE9E2" stroke-width="2.5" stroke-linecap="round" style="transform-origin:75px 85px; transform:rotate(-90deg); transition:transform 0.12s ease-out;"/>
+              <circle cx="75" cy="85" r="4.5" fill="#ECE9E2"/>
+            </svg>
+          </div>
+          <div class="gauge-readout">
+            <div class="val" id="pumpCount">0</div>
+            <div class="lbl">pumps</div>
+          </div>
+          <div class="log-line" id="logLine">Pump to inflate, or collect your earnings.</div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button class="btn-pump" id="btnPump">PUMP</button>
+        <button class="btn-collect" id="btnCollect">COLLECT <span id="collectAmt">$0.00</span></button>
+      </div>
+    </div>
+
+    <div class="log-panel">
+      <div class="log-panel-title">Session log</div>
+      <div class="log-table-wrap">
+        <table>
+          <thead><tr><th>Balloon</th><th>Pumps</th><th>Outcome</th><th>Earned</th></tr></thead>
+          <tbody id="logBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary" id="summaryView">
+    <h2>Session complete</h2>
+    <p class="sub">20 balloons, no reflection needed — here's how it went.</p>
+    <div class="summary-grid">
+      <div class="stat-card"><div class="val" id="sumTotal">$0.00</div><div class="lbl">Total earned</div></div>
+      <div class="stat-card"><div class="val" id="sumAvgPumps">0</div><div class="lbl">Avg pumps (banked)</div></div>
+      <div class="stat-card"><div class="val" id="sumPopped">0</div><div class="lbl">Popped</div></div>
+    </div>
+    <div class="export-row">
+      <button class="btn-ghost" id="btnCopyJson">Copy session JSON</button>
+      <span class="hint" id="copyHint">window.__bartSession holds the full trial log</span>
+    </div>
+    <button class="btn-restart" id="btnRestart">Run again</button>
+  </div>
+
+</div>
+
+<script>
+/* =========================================================
+   CONFIG
+   ========================================================= */
+const CONFIG = {
+  numBalloons: 20,
+  maxPossiblePumps: 128,   // breakpoint is drawn uniformly from 1..128
+  centsPerPump: 5,         // $0.05 per pump, standard BART payout
+};
+
+/* =========================================================
+   SPREADSHEET / EXTERNAL INTEGRATION HOOK
+   -----------------------------------------------------------
+   Wire this up to send trial data wherever you like: a Google
+   Apps Script web app, Sheets API, Airtable, your own backend,
+   etc. It's called once per completed balloon (pop or collect)
+   and once more with the full session at the end.
+
+   Example (Google Apps Script web app):
+     fetch("https://script.google.com/macros/s/XXXX/exec", {
+       method: "POST",
+       headers: { "Content-Type": "application/json" },
+       body: JSON.stringify(trial)
+     });
+   ========================================================= */
+function onTrialComplete(trial) {
+  // trial = { balloonIndex, pumps, popped, breakpoint, earned, cumulativeTotal }
+  // TODO: send `trial` to your spreadsheet / backend here.
+}
+
+function onSessionComplete(session) {
+  // session = { trials: [...], totalEarned, avgPumpsBanked, poppedCount }
+  // TODO: send `session` to your spreadsheet / backend here.
+}
+
+/* =========================================================
+   STATE
+   ========================================================= */
+let state = {
+  trialIndex: 0,
+  pumps: 0,
+  breakpoint: 0,
+  popped: false,
+  balloonEarningsCents: 0,
+  totalEarningsCents: 0,
+  trials: [],
+};
+
+const $ = (id) => document.getElementById(id);
+
+const els = {
+  trialNum: $('trialNum'),
+  trialTotal: $('trialTotal'),
+  totalEarnings: $('totalEarnings'),
+  balloonEarnings: $('balloonEarnings'),
+  balloonSvg: $('balloonSvg'),
+  balloonBody: $('balloonBody'),
+  pumpCount: $('pumpCount'),
+  gaugeArc: $('gaugeArc'),
+  gaugeNeedle: $('gaugeNeedle'),
+  logLine: $('logLine'),
+  btnPump: $('btnPump'),
+  btnCollect: $('btnCollect'),
+  collectAmt: $('collectAmt'),
+  logBody: $('logBody'),
+  taskView: $('taskView'),
+  summaryView: $('summaryView'),
+  sumTotal: $('sumTotal'),
+  sumAvgPumps: $('sumAvgPumps'),
+  sumPopped: $('sumPopped'),
+  btnCopyJson: $('btnCopyJson'),
+  copyHint: $('copyHint'),
+  btnRestart: $('btnRestart'),
+  consoleEl: $('console'),
+};
+
+els.trialTotal.textContent = CONFIG.numBalloons;
+
+/* =========================================================
+   SOUND (synthesized, no external assets)
+   ========================================================= */
+let audioCtx = null;
+function ctx(){ if(!audioCtx){ audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } return audioCtx; }
+
+function playPop(){
+  const c = ctx();
+  const bufferSize = c.sampleRate * 0.25;
+  const buffer = c.createBuffer(1, bufferSize, c.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) {
+    data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 3);
+  }
+  const noise = c.createBufferSource();
+  noise.buffer = buffer;
+  const filter = c.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.setValueAtTime(1200, c.currentTime);
+  filter.frequency.exponentialRampToValueAtTime(80, c.currentTime + 0.2);
+  const gain = c.createGain();
+  gain.gain.setValueAtTime(0.5, c.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.25);
+  noise.connect(filter).connect(gain).connect(c.destination);
+  noise.start();
+}
+
+function playCollect(){
+  const c = ctx();
+  [0, 0.08].forEach((t, i) => {
+    const osc = c.createOscillator();
+    const gain = c.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = i === 0 ? 660 : 880;
+    gain.gain.setValueAtTime(0.001, c.currentTime + t);
+    gain.gain.linearRampToValueAtTime(0.15, c.currentTime + t + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + t + 0.2);
+    osc.connect(gain).connect(c.destination);
+    osc.start(c.currentTime + t);
+    osc.stop(c.currentTime + t + 0.22);
+  });
+}
+
+function playPump(){
+  const c = ctx();
+  const osc = c.createOscillator();
+  const gain = c.createGain();
+  osc.type = 'square';
+  osc.frequency.setValueAtTime(180, c.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(240, c.currentTime + 0.05);
+  gain.gain.setValueAtTime(0.06, c.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.06);
+  osc.connect(gain).connect(c.destination);
+  osc.start();
+  osc.stop(c.currentTime + 0.07);
+}
+
+/* =========================================================
+   TASK LOGIC
+   ========================================================= */
+function randomBreakpoint(){
+  // uniform 1..128: classic BART hazard structure
+  return 1 + Math.floor(Math.random() * CONFIG.maxPossiblePumps);
+}
+
+function startBalloon(){
+  state.pumps = 0;
+  state.breakpoint = randomBreakpoint();
+  state.popped = false;
+  state.balloonEarningsCents = 0;
+  els.logLine.className = 'log-line';
+  els.logLine.textContent = 'Pump to inflate, or collect your earnings.';
+  els.btnPump.disabled = false;
+  els.btnCollect.disabled = false;
+  render();
+}
+
+function render(){
+  els.trialNum.textContent = Math.min(state.trialIndex + 1, CONFIG.numBalloons);
+  els.totalEarnings.textContent = formatCents(state.totalEarningsCents);
+  els.balloonEarnings.textContent = formatCents(state.balloonEarningsCents);
+  els.collectAmt.textContent = formatCents(state.balloonEarningsCents);
+  els.pumpCount.textContent = state.pumps;
+
+  // balloon visual scale: sqrt curve so early pumps grow it fast, tapers off
+  const growth = Math.min(state.pumps / 40, 1); // visually saturate around 40 pumps
+  const scale = 1 + Math.sqrt(growth) * 1.6;
+  els.balloonSvg.style.transform = `scale(${scale})`;
+  els.balloonSvg.style.transformOrigin = '50% 100%';
+
+  // gauge: represents pumps this balloon, saturating around 30 pumps for legibility
+  const gaugePct = Math.min(state.pumps / 30, 1);
+  const arcLen = 204;
+  els.gaugeArc.setAttribute('stroke-dashoffset', String(arcLen * (1 - gaugePct)));
+  const angle = -90 + gaugePct * 180;
+  els.gaugeNeedle.style.transform = `rotate(${angle}deg)`;
+
+  const hue = 43 - gaugePct * 40; // amber -> red-ish tint on arc as pumps climb
+  els.gaugeArc.setAttribute('stroke', `hsl(${hue}, 72%, 58%)`);
+}
+
+function formatCents(c){
+  return '$' + (c / 100).toFixed(2);
+}
+
+function pump(){
+  if (state.popped) return;
+  state.pumps += 1;
+  playPump();
+
+  if (state.pumps >= state.breakpoint) {
+    pop();
+    return;
+  }
+
+  state.balloonEarningsCents += CONFIG.centsPerPump;
+  render();
+}
+
+function pop(){
+  state.popped = true;
+  els.btnPump.disabled = true;
+  els.btnCollect.disabled = true;
+  playPop();
+  els.consoleEl.classList.add('shake');
+  setTimeout(() => els.consoleEl.classList.remove('shake'), 420);
+  els.logLine.className = 'log-line danger';
+  els.logLine.textContent = `Popped at pump ${state.pumps}. $${(state.balloonEarningsCents/100).toFixed(2)} lost.`;
+
+  logTrial({ popped: true, earned: 0 });
+
+  setTimeout(nextBalloon, 900);
+}
+
+function collect(){
+  if (state.popped) return;
+  playCollect();
+  state.totalEarningsCents += state.balloonEarningsCents;
+  els.btnPump.disabled = true;
+  els.btnCollect.disabled = true;
+  els.logLine.className = 'log-line success';
+  els.logLine.textContent = `Collected $${(state.balloonEarningsCents/100).toFixed(2)}.`;
+
+  logTrial({ popped: false, earned: state.balloonEarningsCents });
+
+  setTimeout(nextBalloon, 600);
+}
+
+function logTrial({ popped, earned }){
+  const trial = {
+    balloonIndex: state.trialIndex + 1,
+    pumps: state.pumps,
+    popped,
+    breakpoint: state.breakpoint,
+    earned: earned / 100,
+    cumulativeTotal: state.totalEarningsCents / 100,
+  };
+  state.trials.push(trial);
+  onTrialComplete(trial);
+  appendLogRow(trial);
+  render();
+}
+
+function appendLogRow(trial){
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td>${trial.balloonIndex}</td>
+    <td>${trial.pumps}</td>
+    <td class="${trial.popped ? 'pop' : 'bank'}">${trial.popped ? 'Popped' : 'Banked'}</td>
+    <td class="${trial.popped ? 'pop' : 'bank'}">${trial.popped ? '—' : '$' + trial.earned.toFixed(2)}</td>
+  `;
+  els.logBody.appendChild(tr);
+  els.logBody.parentElement.scrollTop = els.logBody.parentElement.scrollHeight;
+}
+
+function nextBalloon(){
+  state.trialIndex += 1;
+  if (state.trialIndex >= CONFIG.numBalloons) {
+    finishSession();
+    return;
+  }
+  startBalloon();
+}
+
+function finishSession(){
+  els.taskView.style.display = 'none';
+  els.summaryView.style.display = 'block';
+
+  const banked = state.trials.filter(t => !t.popped);
+  const poppedCount = state.trials.filter(t => t.popped).length;
+  const avgPumps = banked.length
+    ? Math.round(banked.reduce((s, t) => s + t.pumps, 0) / banked.length)
+    : 0;
+
+  els.sumTotal.textContent = formatCents(state.totalEarningsCents);
+  els.sumAvgPumps.textContent = avgPumps;
+  els.sumPopped.textContent = `${poppedCount}/${CONFIG.numBalloons}`;
+
+  const session = {
+    trials: state.trials,
+    totalEarned: state.totalEarningsCents / 100,
+    avgPumpsBanked: avgPumps,
+    poppedCount,
+  };
+  window.__bartSession = session;
+  onSessionComplete(session);
+}
+
+/* =========================================================
+   EVENTS
+   ========================================================= */
+els.btnPump.addEventListener('click', pump);
+els.btnCollect.addEventListener('click', collect);
+
+els.btnCopyJson.addEventListener('click', async () => {
+  const text = JSON.stringify(window.__bartSession, null, 2);
+  try {
+    await navigator.clipboard.writeText(text);
+    els.copyHint.textContent = 'Copied to clipboard.';
+  } catch (e) {
+    els.copyHint.textContent = 'Copy failed — see window.__bartSession in console.';
+  }
+  setTimeout(() => { els.copyHint.textContent = 'window.__bartSession holds the full trial log'; }, 2200);
+});
+
+els.btnRestart.addEventListener('click', () => {
+  state = { trialIndex: 0, pumps: 0, breakpoint: 0, popped: false, balloonEarningsCents: 0, totalEarningsCents: 0, trials: [] };
+  els.logBody.innerHTML = '';
+  els.summaryView.style.display = 'none';
+  els.taskView.style.display = 'block';
+  startBalloon();
+});
+
+/* init */
+startBalloon();
+</script>
+
+</body>
+</html>
