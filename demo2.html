@@ -122,11 +122,31 @@
   .gauge-panel{justify-content:flex-start;}
   .gauge-title{font-family:var(--font-mono); font-size:11px; color:var(--text-dim); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:6px; align-self:flex-start;}
 
-  .dial-wrap{ position:relative; width:100%; display:flex; justify-content:center; margin-top:6px;}
-
-  .gauge-readout{margin-top:8px; text-align:center; font-family:var(--font-mono);}
-  .gauge-readout .val{font-size:22px; font-weight:600;}
-  .gauge-readout .lbl{font-size:10px; color:var(--text-dim); letter-spacing:0.08em; text-transform:uppercase;}
+  .odometer{
+    width:100%;
+    margin-top:28px;
+    background:#14181F;
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:16px 10px;
+    text-align:center;
+    box-shadow:inset 0 2px 6px rgba(0,0,0,0.5);
+  }
+  .odometer span{
+    font-family:var(--font-mono);
+    font-size:34px;
+    font-weight:500;
+    letter-spacing:6px;
+    color:var(--amber);
+  }
+  .odometer .odo-label{
+    display:block;
+    margin-top:6px;
+    font-size:10px;
+    letter-spacing:0.1em;
+    color:var(--text-dim);
+    text-transform:uppercase;
+  }
 
   .log-line{
     margin-top:10px;
@@ -276,18 +296,10 @@
         </div>
 
         <div class="gauge-panel">
-          <div class="gauge-title">Pressure</div>
-          <div class="dial-wrap">
-            <svg width="150" height="90" viewBox="0 0 150 90">
-              <path d="M10 85 A65 65 0 0 1 140 85" fill="none" stroke="#333A46" stroke-width="10" stroke-linecap="round"/>
-              <path id="gaugeArc" d="M10 85 A65 65 0 0 1 140 85" fill="none" stroke="#E8A33D" stroke-width="10" stroke-linecap="round" stroke-dasharray="204 204" stroke-dashoffset="204"/>
-              <line id="gaugeNeedle" x1="75" y1="85" x2="75" y2="30" stroke="#ECE9E2" stroke-width="2.5" stroke-linecap="round" style="transform-origin:75px 85px; transform:rotate(-90deg); transition:transform 0.12s ease-out;"/>
-              <circle cx="75" cy="85" r="4.5" fill="#ECE9E2"/>
-            </svg>
-          </div>
-          <div class="gauge-readout">
-            <div class="val" id="pumpCount">0</div>
-            <div class="lbl">pumps</div>
+          <div class="gauge-title">Pump counter</div>
+          <div class="odometer">
+            <span id="pumpCount">000</span>
+            <span class="odo-label">pumps this balloon</span>
           </div>
           <div class="log-line" id="logLine">Pump to inflate, or collect your earnings.</div>
         </div>
@@ -335,7 +347,17 @@ const CONFIG = {
   numBalloons: 20,
   maxPossiblePumps: 128,   // breakpoint is drawn uniformly from 1..128
   centsPerPump: 5,         // $0.05 per pump, standard BART payout
+
+  // Paste your Google Apps Script Web App URL here to log data to a Sheet.
+  // Leave blank to run purely local (data still lands in window.__bartSession).
+  // See setup instructions in the accompanying message.
+  sheetWebhookUrl: 'https://script.google.com/macros/s/AKfycbyRCFHStC9RhDbHjndnK9qdcgi0uYsqt98FaO4VSVrl0l4Qye_6xV_k5b1AlmBzu-iy/exec',
 };
+
+// One ID per page load, so all rows from a single run can be grouped in the sheet.
+const SESSION_ID = (window.crypto && crypto.randomUUID)
+  ? crypto.randomUUID()
+  : 'session-' + Date.now() + '-' + Math.random().toString(36).slice(2);
 
 /* =========================================================
    SPREADSHEET / EXTERNAL INTEGRATION HOOK
@@ -353,13 +375,32 @@ const CONFIG = {
      });
    ========================================================= */
 function onTrialComplete(trial) {
-  // trial = { balloonIndex, pumps, popped, breakpoint, earned, cumulativeTotal }
-  // TODO: send `trial` to your spreadsheet / backend here.
+  // trial already carries sessionId, timestamp, balloonIndex, pumps, outcome,
+  // breakpoint, earned, cumulativeTotal, decisionTimeMs — see logTrial().
+  sendToSheet({ eventType: 'trial', ...trial });
 }
 
 function onSessionComplete(session) {
-  // session = { trials: [...], totalEarned, avgPumpsBanked, poppedCount }
-  // TODO: send `session` to your spreadsheet / backend here.
+  sendToSheet({
+    eventType: 'session_summary',
+    sessionId: SESSION_ID,
+    timestamp: new Date().toISOString(),
+    totalBalloons: CONFIG.numBalloons,
+    totalEarned: session.totalEarned,
+    avgPumpsBanked: session.avgPumpsBanked,
+    poppedCount: session.poppedCount,
+  });
+}
+
+function sendToSheet(payload) {
+  if (!CONFIG.sheetWebhookUrl) return; // no webhook configured — stays local only
+  fetch(CONFIG.sheetWebhookUrl, {
+    method: 'POST',
+    // text/plain avoids a CORS preflight that Apps Script web apps can't answer
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(payload),
+    mode: 'no-cors', // Apps Script won't return CORS headers; response is unreadable but the write still happens
+  }).catch(() => { /* never let a network hiccup block the task */ });
 }
 
 /* =========================================================
@@ -372,6 +413,7 @@ let state = {
   popped: false,
   balloonEarningsCents: 0,
   totalEarningsCents: 0,
+  balloonStartTime: 0,
   trials: [],
 };
 
@@ -385,8 +427,6 @@ const els = {
   balloonSvg: $('balloonSvg'),
   balloonBody: $('balloonBody'),
   pumpCount: $('pumpCount'),
-  gaugeArc: $('gaugeArc'),
-  gaugeNeedle: $('gaugeNeedle'),
   logLine: $('logLine'),
   btnPump: $('btnPump'),
   btnCollect: $('btnCollect'),
@@ -475,6 +515,7 @@ function startBalloon(){
   state.breakpoint = randomBreakpoint();
   state.popped = false;
   state.balloonEarningsCents = 0;
+  state.balloonStartTime = Date.now();
   els.logLine.className = 'log-line';
   els.logLine.textContent = 'Pump to inflate, or collect your earnings.';
   els.btnPump.disabled = false;
@@ -487,23 +528,16 @@ function render(){
   els.totalEarnings.textContent = formatCents(state.totalEarningsCents);
   els.balloonEarnings.textContent = formatCents(state.balloonEarningsCents);
   els.collectAmt.textContent = formatCents(state.balloonEarningsCents);
-  els.pumpCount.textContent = state.pumps;
+  // Deliberately no risk-coded gauge here: real breakpoints range up to 128
+  // pumps (mean ~64), so any visual that fills up or turns red by pump 20-30
+  // would misrepresent the actual odds. Just report the plain count.
+  els.pumpCount.textContent = String(state.pumps).padStart(3, '0');
 
   // balloon visual scale: sqrt curve so early pumps grow it fast, tapers off
   const growth = Math.min(state.pumps / 40, 1); // visually saturate around 40 pumps
   const scale = 1 + Math.sqrt(growth) * 1.6;
   els.balloonSvg.style.transform = `scale(${scale})`;
   els.balloonSvg.style.transformOrigin = '50% 100%';
-
-  // gauge: represents pumps this balloon, saturating around 30 pumps for legibility
-  const gaugePct = Math.min(state.pumps / 30, 1);
-  const arcLen = 204;
-  els.gaugeArc.setAttribute('stroke-dashoffset', String(arcLen * (1 - gaugePct)));
-  const angle = -90 + gaugePct * 180;
-  els.gaugeNeedle.style.transform = `rotate(${angle}deg)`;
-
-  const hue = 43 - gaugePct * 40; // amber -> red-ish tint on arc as pumps climb
-  els.gaugeArc.setAttribute('stroke', `hsl(${hue}, 72%, 58%)`);
 }
 
 function formatCents(c){
@@ -554,13 +588,19 @@ function collect(){
 }
 
 function logTrial({ popped, earned }){
+  const now = Date.now();
   const trial = {
+    sessionId: SESSION_ID,
+    timestamp: new Date(now).toISOString(),
     balloonIndex: state.trialIndex + 1,
+    totalBalloons: CONFIG.numBalloons,
     pumps: state.pumps,
     popped,
-    breakpoint: state.breakpoint,
+    outcome: popped ? 'popped' : 'banked',
+    breakpoint: state.breakpoint,        // the hidden pump limit this balloon rolled
     earned: earned / 100,
     cumulativeTotal: state.totalEarningsCents / 100,
+    decisionTimeMs: now - state.balloonStartTime, // time from balloon start to final decision
   };
   state.trials.push(trial);
   onTrialComplete(trial);
@@ -631,7 +671,7 @@ els.btnCopyJson.addEventListener('click', async () => {
 });
 
 els.btnRestart.addEventListener('click', () => {
-  state = { trialIndex: 0, pumps: 0, breakpoint: 0, popped: false, balloonEarningsCents: 0, totalEarningsCents: 0, trials: [] };
+  state = { trialIndex: 0, pumps: 0, breakpoint: 0, popped: false, balloonEarningsCents: 0, totalEarningsCents: 0, balloonStartTime: 0, trials: [] };
   els.logBody.innerHTML = '';
   els.summaryView.style.display = 'none';
   els.taskView.style.display = 'block';
