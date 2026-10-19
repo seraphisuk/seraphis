@@ -2,341 +2,256 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>BART — Balloon Analogue Risk Task</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#1B1F27;
-    --panel:#242933;
-    --panel-2:#1F242C;
-    --border:#333A46;
-    --text:#ECE9E2;
-    --text-dim:#9AA0AC;
-    --amber:#E8A33D;
-    --amber-dim:#7A5A28;
-    --red:#D9534F;
-    --sage:#6FA88A;
-    --sage-dim:#3E5A4C;
-    --font-display: 'Space Grotesk', sans-serif;
-    --font-mono: 'IBM Plex Mono', monospace;
+    --sky:#D8E8F3;
+    --paper:#F7F4EC;
+    --ink:#14213A;
+    --ink-soft:#52617C;
+    --balloon:#E5533D;
+    --balloon-dark:#B93A28;
+    --green:#2B8A57;
+    --green-dark:#1F6B42;
+    --bad:#C0301C;
+    --line:rgba(20,33,58,.14);
+    --font:'Bricolage Grotesque', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   }
 
-  *{box-sizing:border-box;}
-
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ height:100%; margin:0; }
   body{
-    margin:0;
-    min-height:100vh;
-    background:
-      radial-gradient(circle at 1px 1px, rgba(255,255,255,0.035) 1px, transparent 0) 0 0/22px 22px,
-      var(--bg);
-    color:var(--text);
-    font-family:var(--font-display);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    padding:24px;
+    font-family:var(--font);
+    color:var(--ink);
+    background:var(--sky);
+    font-variant-numeric:tabular-nums;
+    -webkit-text-size-adjust:100%;
   }
 
-  .console{
-    width:100%;
-    max-width:720px;
-    background:var(--panel);
-    border:1px solid var(--border);
-    border-radius:14px;
-    box-shadow:0 30px 60px -20px rgba(0,0,0,0.6);
-    overflow:hidden;
-  }
-
-  /* header */
-  .console-head{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    padding:18px 22px;
-    border-bottom:1px solid var(--border);
-    background:var(--panel-2);
-  }
-  .brand{display:flex; align-items:baseline; gap:10px;}
-  .brand-mark{
-    font-family:var(--font-mono);
-    font-size:12px;
-    letter-spacing:0.12em;
-    color:var(--amber);
-    border:1px solid var(--amber-dim);
-    padding:2px 7px;
-    border-radius:4px;
-  }
-  .brand-name{font-size:15px; font-weight:600; color:var(--text-dim); letter-spacing:0.02em;}
-  .head-stats{
-    display:flex; gap:20px;
-    font-family:var(--font-mono);
-    font-size:13px;
-    color:var(--text-dim);
-  }
-  .head-stats b{color:var(--text); font-weight:600;}
-
-  /* body */
-  .console-body{padding:26px 22px 8px;}
-
-  .stage{
-    display:grid;
-    grid-template-columns:1.15fr 0.85fr;
-    gap:18px;
-    margin-bottom:20px;
-  }
-  @media (max-width:520px){ .stage{grid-template-columns:1fr;} }
-
-  .balloon-panel, .gauge-panel{
-    background:var(--panel-2);
-    border:1px solid var(--border);
-    border-radius:10px;
-    padding:16px;
+  /* ---------- task screen: fills the whole viewport ---------- */
+  .app{
+    height:100vh;
+    height:100dvh;
     display:flex;
     flex-direction:column;
-    align-items:center;
-    justify-content:space-between;
-    min-height:260px;
+    background:var(--sky);
   }
-
-  .balloon-stage{
-    flex:1;
-    width:100%;
-    display:flex;
-    align-items:flex-end;
-    justify-content:center;
-    position:relative;
-  }
-
-  #balloonSvg{ overflow:visible; transition:transform 0.08s ease-out; }
-
-  .balloon-readout{
-    font-family:var(--font-mono);
-    text-align:center;
-    margin-top:10px;
-  }
-  .balloon-readout .val{font-size:26px; font-weight:600; color:var(--amber);}
-  .balloon-readout .lbl{font-size:11px; color:var(--text-dim); letter-spacing:0.08em; text-transform:uppercase;}
-
-  .gauge-panel{justify-content:flex-start;}
-  .gauge-title{font-family:var(--font-mono); font-size:11px; color:var(--text-dim); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:6px; align-self:flex-start;}
-
-  .odometer{
-    width:100%;
-    margin-top:28px;
-    background:#14181F;
-    border:1px solid var(--border);
-    border-radius:6px;
-    padding:16px 10px;
-    text-align:center;
-    box-shadow:inset 0 2px 6px rgba(0,0,0,0.5);
-  }
-  .odometer span{
-    font-family:var(--font-mono);
-    font-size:34px;
-    font-weight:500;
-    letter-spacing:6px;
-    color:var(--amber);
-  }
-  .odometer .odo-label{
-    display:block;
-    margin-top:6px;
-    font-size:10px;
-    letter-spacing:0.1em;
-    color:var(--text-dim);
-    text-transform:uppercase;
-  }
-
-  .log-line{
-    margin-top:10px;
-    font-family:var(--font-mono);
-    font-size:12px;
-    color:var(--text-dim);
-    min-height:16px;
-    text-align:center;
-  }
-  .log-line.danger{ color:var(--red); }
-  .log-line.success{ color:var(--sage); }
-
-  /* controls */
-  .controls{
-    display:flex;
-    gap:12px;
-    margin-bottom:22px;
-  }
-  button{
-    font-family:var(--font-display);
-    font-weight:600;
-    font-size:15px;
-    border-radius:8px;
-    border:1px solid transparent;
-    padding:14px 18px;
-    cursor:pointer;
-    transition:transform 0.05s ease, filter 0.15s ease, opacity 0.15s ease;
-    flex:1;
-  }
-  button:active{ transform:translateY(1px); }
-  button:disabled{ opacity:0.35; cursor:not-allowed; }
-  button:focus-visible{ outline:2px solid var(--amber); outline-offset:2px; }
-
-  .btn-pump{
-    background:var(--amber);
-    color:#231705;
-  }
-  .btn-pump:hover:not(:disabled){ filter:brightness(1.08); }
-
-  .btn-collect{
-    background:transparent;
-    color:var(--sage);
-    border-color:var(--sage-dim);
-  }
-  .btn-collect:hover:not(:disabled){ background:rgba(111,168,138,0.1); }
-
-  /* trial log table */
-  .log-panel{
-    border-top:1px solid var(--border);
-    padding:14px 22px 20px;
-  }
-  .log-panel-title{
-    font-family:var(--font-mono);
-    font-size:11px;
-    color:var(--text-dim);
-    letter-spacing:0.1em;
-    text-transform:uppercase;
-    margin-bottom:8px;
-  }
-  .log-table-wrap{ max-height:120px; overflow-y:auto; border:1px solid var(--border); border-radius:8px; }
-  table{ width:100%; border-collapse:collapse; font-family:var(--font-mono); font-size:12px; }
-  th,td{ text-align:left; padding:6px 10px; }
-  thead th{ position:sticky; top:0; background:var(--panel-2); color:var(--text-dim); font-weight:500; border-bottom:1px solid var(--border); }
-  tbody tr:nth-child(odd){ background:rgba(255,255,255,0.02); }
-  td.pop{ color:var(--red); }
-  td.bank{ color:var(--sage); }
-
-  /* summary screen */
-  .summary{ padding:26px 22px; display:none; }
-  .summary h2{ margin:0 0 4px; font-size:20px; }
-  .summary p.sub{ margin:0 0 20px; color:var(--text-dim); font-size:13px; }
-  .summary-grid{
-    display:grid;
-    grid-template-columns:repeat(3,1fr);
-    gap:10px;
-    margin-bottom:20px;
-  }
-  .stat-card{
-    background:var(--panel-2);
-    border:1px solid var(--border);
-    border-radius:8px;
-    padding:12px;
-    text-align:center;
-  }
-  .stat-card .val{ font-family:var(--font-mono); font-size:20px; font-weight:600; color:var(--amber); }
-  .stat-card .lbl{ font-family:var(--font-mono); font-size:10px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.08em; margin-top:3px;}
-
-  .export-row{ display:flex; gap:10px; align-items:center; margin-bottom:14px; }
-  .btn-ghost{
-    background:transparent; color:var(--text-dim); border-color:var(--border); font-size:13px; padding:9px 14px; flex:none;
-  }
-  .btn-ghost:hover{ color:var(--text); border-color:var(--text-dim); }
-  .hint{ font-family:var(--font-mono); font-size:11px; color:var(--text-dim); }
-
-  .btn-restart{ width:100%; background:var(--amber); color:#231705; }
-
-  .shake{ animation:shake 0.4s; }
+  .app.shake{ animation:shake .4s; }
   @keyframes shake{
     10%,90%{ transform:translateX(-2px); }
-    20%,80%{ transform:translateX(4px); }
-    30%,50%,70%{ transform:translateX(-8px); }
-    40%,60%{ transform:translateX(8px); }
+    20%,80%{ transform:translateX(5px); }
+    30%,50%,70%{ transform:translateX(-9px); }
+    40%,60%{ transform:translateX(9px); }
   }
 
+  .hud{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    padding:calc(14px + env(safe-area-inset-top)) 20px 6px;
+    position:relative;
+    z-index:2;
+  }
+  .hud-label{ display:block; font-size:13px; font-weight:500; color:var(--ink-soft); }
+  .hud-value{ display:block; font-size:26px; font-weight:700; line-height:1.1; }
+  .hud .right{ text-align:right; }
+  .hud .of{ font-weight:500; color:var(--ink-soft); font-size:20px; }
+
+  .stage{
+    position:relative;
+    flex:1;
+    min-height:0;           /* lets the flex child shrink so the SVG can scale to fit */
+    padding:4px 12px 0;
+    overflow:hidden;
+  }
+  #balloonSvg{
+    position:absolute;
+    inset:4px 12px 0 12px;
+    width:calc(100% - 24px);
+    height:calc(100% - 4px);
+    display:block;
+    overflow:visible;
+  }
+
+  .cloud{ position:absolute; background:#fff; opacity:.75; border-radius:999px; height:34px; width:120px; }
+  .cloud::before,.cloud::after{ content:""; position:absolute; background:#fff; border-radius:50%; }
+  .cloud::before{ width:56px; height:56px; left:18px; top:-26px; }
+  .cloud::after{ width:42px; height:42px; left:62px; top:-16px; }
+  .cloud.c1{ left:6%;  top:14%; }
+  .cloud.c2{ right:8%; top:30%; transform:scale(.8); }
+  .cloud.c3{ left:14%; top:62%; transform:scale(.6); opacity:.6; }
+
+  /* ---------- bottom dock: readouts + controls ---------- */
+  .dock{
+    background:var(--paper);
+    border-top:1px solid var(--line);
+    padding:14px 16px calc(14px + env(safe-area-inset-bottom));
+  }
+  .dock-inner{ max-width:760px; margin:0 auto; display:grid; gap:12px; }
+
+  .status{
+    min-height:22px;
+    text-align:center;
+    font-size:16px;
+    font-weight:500;
+    color:var(--ink-soft);
+  }
+  .status.bad{ color:var(--bad); font-weight:600; }
+  .status.good{ color:var(--green-dark); font-weight:600; }
+
+  .readouts{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .readout{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:10px 14px;
+  }
+  .readout .lbl{ display:block; font-size:13px; font-weight:500; color:var(--ink-soft); }
+  .readout .val{ display:block; font-size:30px; font-weight:700; line-height:1.15; }
+
+  .buttons{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  button{
+    font-family:var(--font);
+    font-size:20px;
+    font-weight:700;
+    height:64px;
+    border:0;
+    border-radius:16px;
+    cursor:pointer;
+    color:#fff;
+    touch-action:manipulation;       /* no double-tap zoom on rapid pumping */
+    user-select:none; -webkit-user-select:none;
+    transition:transform .05s ease, filter .15s ease, opacity .15s ease;
+  }
+  button:active:not(:disabled){ transform:translateY(2px); }
+  button:disabled{ opacity:.38; cursor:not-allowed; }
+  button:focus-visible{ outline:3px solid var(--ink); outline-offset:3px; }
+  .btn-pump{ background:var(--ink); }
+  .btn-pump:hover:not(:disabled){ filter:brightness(1.25); }
+  .btn-collect{ background:var(--green); }
+  .btn-collect:hover:not(:disabled){ background:var(--green-dark); }
+
+  @media (max-height:560px){
+    .hud-value{ font-size:20px; }
+    .readout .val{ font-size:22px; }
+    button{ height:52px; font-size:18px; }
+    .status{ min-height:0; }
+  }
+
+  /* ---------- summary screen ---------- */
+  .summary{ display:none; min-height:100vh; min-height:100dvh; padding:32px 20px 48px; background:var(--sky); }
+  .summary-inner{ max-width:760px; margin:0 auto; }
+  .summary h1{ font-size:34px; margin:0 0 4px; letter-spacing:-.01em; }
+  .summary .sub{ margin:0 0 24px; color:var(--ink-soft); font-size:17px; }
+
+  .summary-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:24px; }
+  .stat{ background:#fff; border:1px solid var(--line); border-radius:16px; padding:16px; }
+  .stat .val{ display:block; font-size:34px; font-weight:800; line-height:1.1; }
+  .stat .lbl{ display:block; margin-top:4px; font-size:14px; color:var(--ink-soft); font-weight:500; }
+  @media (max-width:520px){
+    .summary-grid{ grid-template-columns:1fr; }
+    .stat{ display:flex; align-items:baseline; justify-content:space-between; }
+    .stat .lbl{ margin-top:0; }
+  }
+
+  .table-wrap{ background:#fff; border:1px solid var(--line); border-radius:16px; overflow:hidden; margin-bottom:20px; }
+  table{ width:100%; border-collapse:collapse; font-size:16px; }
+  th,td{ text-align:left; padding:10px 16px; }
+  thead th{ background:var(--paper); font-size:13px; font-weight:600; color:var(--ink-soft); border-bottom:1px solid var(--line); }
+  tbody tr + tr td{ border-top:1px solid var(--line); }
+  td.pop{ color:var(--bad); font-weight:600; }
+  td.bank{ color:var(--green-dark); font-weight:600; }
+
+  .summary-actions{ display:grid; gap:12px; }
+  .btn-restart{ background:var(--ink); }
+  .btn-ghost{ background:transparent; color:var(--ink); border:2px solid var(--ink); height:52px; font-size:17px; }
+  .hint{ text-align:center; font-size:14px; color:var(--ink-soft); }
+
   @media (prefers-reduced-motion: reduce){
-    *{ animation:none !important; transition:none !important; }
+    .app.shake{ animation:none; }
+    *{ transition:none !important; }
   }
 </style>
 </head>
 <body>
 
-<div class="console" id="console">
+<!-- ================= TASK ================= -->
+<div class="app" id="app">
 
-  <div class="console-head">
-    <div class="brand">
-      <span class="brand-mark">BART</span>
-      <span class="brand-name">Balloon Analogue Risk Task</span>
+  <header class="hud">
+    <div>
+      <span class="hud-label">Balloon</span>
+      <span class="hud-value"><span id="trialNum">1</span> <span class="of">of <span id="trialTotal">20</span></span></span>
     </div>
-    <div class="head-stats">
-      <span>BALLOON <b id="trialNum">1</b>/<span id="trialTotal">20</span></span>
-      <span>TOTAL <b id="totalEarnings">$0.00</b></span>
+    <div class="right">
+      <span class="hud-label">Banked</span>
+      <span class="hud-value" id="totalEarnings">$0.00</span>
     </div>
-  </div>
+  </header>
 
-  <div id="taskView">
-    <div class="console-body">
-      <div class="stage">
-        <div class="balloon-panel">
-          <div class="balloon-stage">
-            <svg id="balloonSvg" width="140" height="170" viewBox="0 0 140 170">
-              <ellipse id="balloonBody" cx="70" cy="80" rx="46" ry="52" fill="url(#balloonGrad)" stroke="#171b21" stroke-width="2"/>
-              <path d="M70 132 L64 142 L76 142 Z" fill="#171b21"/>
-              <line x1="70" y1="142" x2="70" y2="165" stroke="#5a6170" stroke-width="1.5" stroke-dasharray="2 3"/>
-              <defs>
-                <radialGradient id="balloonGrad" cx="35%" cy="30%" r="75%">
-                  <stop offset="0%" stop-color="#F4C572"/>
-                  <stop offset="55%" stop-color="#E8A33D"/>
-                  <stop offset="100%" stop-color="#C97F22"/>
-                </radialGradient>
-              </defs>
-            </svg>
-          </div>
-          <div class="balloon-readout">
-            <div class="val" id="balloonEarnings">$0.00</div>
-            <div class="lbl">this balloon</div>
-          </div>
-        </div>
+  <main class="stage" id="stage">
+    <div class="cloud c1"></div>
+    <div class="cloud c2"></div>
+    <div class="cloud c3"></div>
 
-        <div class="gauge-panel">
-          <div class="gauge-title">Pump counter</div>
-          <div class="odometer">
-            <span id="pumpCount">000</span>
-            <span class="odo-label">pumps this balloon</span>
-          </div>
-          <div class="log-line" id="logLine">Pump to inflate, or collect your earnings.</div>
-        </div>
+    <!-- viewBox is fixed; the balloon grows inside it and the whole thing scales to
+         whatever space the stage has, so it can never overflow on any screen. -->
+    <svg id="balloonSvg" viewBox="0 0 200 260" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
+      <g id="burst"></g>
+      <g id="balloonG">
+        <path id="string" d="M100 224 C 92 234, 108 244, 100 258" fill="none" stroke="#52617C" stroke-width="1.6" stroke-linecap="round"/>
+        <path id="knot" d="M100 214 L94 225 L106 225 Z" fill="#B93A28"/>
+        <path id="balloonBody" d="" fill="#E5533D"/>
+        <ellipse id="balloonShine" cx="0" cy="0" rx="0" ry="0" fill="#fff" opacity=".32"/>
+      </g>
+    </svg>
+  </main>
+
+  <section class="dock">
+    <div class="dock-inner">
+      <div class="status" id="logLine">Pump to inflate, or collect your earnings.</div>
+      <div class="readouts">
+        <div class="readout"><span class="lbl">This balloon</span><span class="val" id="balloonEarnings">$0.00</span></div>
+        <div class="readout"><span class="lbl">Pumps</span><span class="val" id="pumpCount">0</span></div>
       </div>
-
-      <div class="controls">
-        <button class="btn-pump" id="btnPump">PUMP</button>
-        <button class="btn-collect" id="btnCollect">COLLECT <span id="collectAmt">$0.00</span></button>
+      <div class="buttons">
+        <button class="btn-pump" id="btnPump">Pump</button>
+        <button class="btn-collect" id="btnCollect">Collect <span id="collectAmt">$0.00</span></button>
       </div>
     </div>
+  </section>
 
-    <div class="log-panel">
-      <div class="log-panel-title">Session log</div>
-      <div class="log-table-wrap">
-        <table>
-          <thead><tr><th>Balloon</th><th>Pumps</th><th>Outcome</th><th>Earned</th></tr></thead>
-          <tbody id="logBody"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
+</div>
 
-  <div class="summary" id="summaryView">
-    <h2>Session complete</h2>
-    <p class="sub">20 balloons, no reflection needed — here's how it went.</p>
+<!-- ================= SUMMARY ================= -->
+<div class="summary" id="summaryView">
+  <div class="summary-inner">
+    <h1>Session complete</h1>
+    <p class="sub" id="sumSub">All balloons done. Here is how the session went.</p>
+
     <div class="summary-grid">
-      <div class="stat-card"><div class="val" id="sumTotal">$0.00</div><div class="lbl">Total earned</div></div>
-      <div class="stat-card"><div class="val" id="sumAvgPumps">0</div><div class="lbl">Avg pumps (banked)</div></div>
-      <div class="stat-card"><div class="val" id="sumPopped">0</div><div class="lbl">Popped</div></div>
+      <div class="stat"><span class="val" id="sumTotal">$0.00</span><span class="lbl">Total earned</span></div>
+      <div class="stat"><span class="val" id="sumAvgPumps">0</span><span class="lbl">Avg pumps (banked balloons)</span></div>
+      <div class="stat"><span class="val" id="sumPopped">0</span><span class="lbl">Balloons popped</span></div>
     </div>
-    <div class="export-row">
-      <button class="btn-ghost" id="btnCopyJson">Copy session JSON</button>
-      <span class="hint" id="copyHint">window.__bartSession holds the full trial log</span>
-    </div>
-    <button class="btn-restart" id="btnRestart">Run again</button>
-  </div>
 
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Balloon</th><th>Pumps</th><th>Outcome</th><th>Earned</th></tr></thead>
+        <tbody id="logBody"></tbody>
+      </table>
+    </div>
+
+    <div class="summary-actions">
+      <button class="btn-ghost" id="btnCopyJson">Copy session JSON</button>
+      <div class="hint" id="copyHint">window.__bartSession holds the full trial log</div>
+      <button class="btn-restart" id="btnRestart">Run again</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -350,8 +265,7 @@ const CONFIG = {
 
   // Paste your Google Apps Script Web App URL here to log data to a Sheet.
   // Leave blank to run purely local (data still lands in window.__bartSession).
-  // See setup instructions in the accompanying message.
-  sheetWebhookUrl: 'https://script.google.com/macros/s/AKfycbyRCFHStC9RhDbHjndnK9qdcgi0uYsqt98FaO4VSVrl0l4Qye_6xV_k5b1AlmBzu-iy/exec',
+  sheetWebhookUrl: '',
 };
 
 // One ID per page load, so all rows from a single run can be grouped in the sheet.
@@ -360,23 +274,9 @@ const SESSION_ID = (window.crypto && crypto.randomUUID)
   : 'session-' + Date.now() + '-' + Math.random().toString(36).slice(2);
 
 /* =========================================================
-   SPREADSHEET / EXTERNAL INTEGRATION HOOK
-   -----------------------------------------------------------
-   Wire this up to send trial data wherever you like: a Google
-   Apps Script web app, Sheets API, Airtable, your own backend,
-   etc. It's called once per completed balloon (pop or collect)
-   and once more with the full session at the end.
-
-   Example (Google Apps Script web app):
-     fetch("https://script.google.com/macros/s/XXXX/exec", {
-       method: "POST",
-       headers: { "Content-Type": "application/json" },
-       body: JSON.stringify(trial)
-     });
+   SPREADSHEET / EXTERNAL INTEGRATION
    ========================================================= */
 function onTrialComplete(trial) {
-  // trial already carries sessionId, timestamp, balloonIndex, pumps, outcome,
-  // breakpoint, earned, cumulativeTotal, decisionTimeMs — see logTrial().
   sendToSheet({ eventType: 'trial', ...trial });
 }
 
@@ -393,13 +293,13 @@ function onSessionComplete(session) {
 }
 
 function sendToSheet(payload) {
-  if (!CONFIG.sheetWebhookUrl) return; // no webhook configured — stays local only
+  if (!CONFIG.sheetWebhookUrl) return;
   fetch(CONFIG.sheetWebhookUrl, {
     method: 'POST',
     // text/plain avoids a CORS preflight that Apps Script web apps can't answer
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
     body: JSON.stringify(payload),
-    mode: 'no-cors', // Apps Script won't return CORS headers; response is unreadable but the write still happens
+    mode: 'no-cors', // response is unreadable, but the write still happens
   }).catch(() => { /* never let a network hiccup block the task */ });
 }
 
@@ -420,30 +320,126 @@ let state = {
 const $ = (id) => document.getElementById(id);
 
 const els = {
+  app: $('app'),
   trialNum: $('trialNum'),
   trialTotal: $('trialTotal'),
   totalEarnings: $('totalEarnings'),
   balloonEarnings: $('balloonEarnings'),
-  balloonSvg: $('balloonSvg'),
+  balloonG: $('balloonG'),
   balloonBody: $('balloonBody'),
+  balloonShine: $('balloonShine'),
+  burst: $('burst'),
   pumpCount: $('pumpCount'),
   logLine: $('logLine'),
   btnPump: $('btnPump'),
   btnCollect: $('btnCollect'),
   collectAmt: $('collectAmt'),
   logBody: $('logBody'),
-  taskView: $('taskView'),
   summaryView: $('summaryView'),
+  sumSub: $('sumSub'),
   sumTotal: $('sumTotal'),
   sumAvgPumps: $('sumAvgPumps'),
   sumPopped: $('sumPopped'),
   btnCopyJson: $('btnCopyJson'),
   copyHint: $('copyHint'),
   btnRestart: $('btnRestart'),
-  consoleEl: $('console'),
 };
 
 els.trialTotal.textContent = CONFIG.numBalloons;
+
+/* =========================================================
+   RANDOMNESS
+   Uniform integer in [0, n) from the browser's CSPRNG, using rejection
+   sampling so there is no modulo bias for any n.
+   ========================================================= */
+function randInt(n){
+  const cryptoObj = (typeof crypto !== 'undefined' && crypto.getRandomValues) ? crypto : null;
+  if (!cryptoObj) return Math.floor(Math.random() * n); // very old browsers only
+  const limit = Math.floor(0x100000000 / n) * n;
+  const buf = new Uint32Array(1);
+  let x;
+  do { cryptoObj.getRandomValues(buf); x = buf[0]; } while (x >= limit);
+  return x % n;
+}
+
+function randomBreakpoint(){
+  // uniform over 1..maxPossiblePumps (classic BART: 1..128)
+  return 1 + randInt(CONFIG.maxPossiblePumps);
+}
+
+/* =========================================================
+   BALLOON GEOMETRY
+   Everything is drawn inside a fixed 200x260 viewBox with the knot
+   anchored at the bottom. Height at the maximum pump count is sized to
+   just fit the box, so the balloon cannot leave the stage at any pump
+   count or screen size.
+   ========================================================= */
+const GEO = { cx:100, yb:214, ryMin:12, ryMax:105, rxRatio:0.86 };
+
+function radiusFor(pumps){
+  const p = Math.min(pumps, CONFIG.maxPossiblePumps) / CONFIG.maxPossiblePumps;
+  return GEO.ryMin + (GEO.ryMax - GEO.ryMin) * p;   // linear: each pump adds the same size
+}
+
+function balloonPath(ry){
+  const rx = ry * GEO.rxRatio, cx = GEO.cx, yb = GEO.yb;
+  const f = (n) => n.toFixed(2);
+  return [
+    `M${f(cx)} ${f(yb)}`,
+    `C${f(cx-0.55*rx)} ${f(yb-0.10*ry)} ${f(cx-rx)} ${f(yb-0.55*ry)} ${f(cx-rx)} ${f(yb-1.10*ry)}`,
+    `C${f(cx-rx)} ${f(yb-1.65*ry)} ${f(cx-0.60*rx)} ${f(yb-2*ry)} ${f(cx)} ${f(yb-2*ry)}`,
+    `C${f(cx+0.60*rx)} ${f(yb-2*ry)} ${f(cx+rx)} ${f(yb-1.65*ry)} ${f(cx+rx)} ${f(yb-1.10*ry)}`,
+    `C${f(cx+rx)} ${f(yb-0.55*ry)} ${f(cx+0.55*rx)} ${f(yb-0.10*ry)} ${f(cx)} ${f(yb)}Z`,
+  ].join(' ');
+}
+
+function drawBalloon(pumps){
+  const ry = radiusFor(pumps), rx = ry * GEO.rxRatio;
+  els.balloonBody.setAttribute('d', balloonPath(ry));
+  const sx = GEO.cx - 0.45*rx, sy = GEO.yb - 1.5*ry;
+  const s = els.balloonShine;
+  s.setAttribute('cx', sx.toFixed(2));
+  s.setAttribute('cy', sy.toFixed(2));
+  s.setAttribute('rx', (0.10*rx).toFixed(2));
+  s.setAttribute('ry', (0.24*ry).toFixed(2));
+  s.setAttribute('transform', `rotate(-22 ${sx.toFixed(2)} ${sy.toFixed(2)})`);
+}
+
+function burstAt(pumps){
+  const ry = radiusFor(pumps), cx = GEO.cx, cy = GEO.yb - ry;
+  const ns = 'http://www.w3.org/2000/svg';
+  els.burst.innerHTML = '';
+
+  // expanding ring
+  const ring = document.createElementNS(ns, 'circle');
+  ring.setAttribute('r', ry.toFixed(1));
+  ring.setAttribute('fill', 'none');
+  ring.style.stroke = '#E5533D';
+  ring.setAttribute('stroke-width', '5');
+  els.burst.appendChild(ring);
+  ring.animate(
+    [{ transform:`translate(${cx}px,${cy}px) scale(.6)`, opacity:.9 },
+     { transform:`translate(${cx}px,${cy}px) scale(1.5)`, opacity:0 }],
+    { duration:450, easing:'ease-out', fill:'forwards' }
+  );
+
+  // flying shards
+  const n = 20;
+  for (let i = 0; i < n; i++){
+    const a = (i / n) * Math.PI * 2 + (Math.random() - .5) * .35;
+    const dist = ry * (1.0 + Math.random() * 0.9);
+    const size = 5 + Math.random() * 11;
+    const shard = document.createElementNS(ns, 'path');
+    shard.setAttribute('d', `M0 ${-size} L${size*.6} ${size*.6} L${-size*.6} ${size*.5} Z`);
+    shard.style.fill = (i % 3 === 0) ? '#B93A28' : '#E5533D';
+    els.burst.appendChild(shard);
+    shard.animate(
+      [{ transform:`translate(${cx}px,${cy}px) rotate(0deg) scale(1)`, opacity:1 },
+       { transform:`translate(${cx + Math.cos(a)*dist}px,${cy + Math.sin(a)*dist}px) rotate(${(Math.random()-.5)*720}deg) scale(.5)`, opacity:0 }],
+      { duration:620 + Math.random()*180, easing:'cubic-bezier(.12,.7,.3,1)', fill:'forwards' }
+    );
+  }
+}
 
 /* =========================================================
    SOUND (synthesized, no external assets)
@@ -504,10 +500,12 @@ function playPump(){
 
 /* =========================================================
    TASK LOGIC
+   A balloon with breakpoint b survives b-1 pumps; pump number b pops it.
+   (So breakpoint 1 pops on the very first pump, as in the original task.)
    ========================================================= */
-function randomBreakpoint(){
-  // uniform 1..128: classic BART hazard structure
-  return 1 + Math.floor(Math.random() * CONFIG.maxPossiblePumps);
+function setStatus(text, kind){
+  els.logLine.className = 'status' + (kind ? ' ' + kind : '');
+  els.logLine.textContent = text;
 }
 
 function startBalloon(){
@@ -516,8 +514,9 @@ function startBalloon(){
   state.popped = false;
   state.balloonEarningsCents = 0;
   state.balloonStartTime = Date.now();
-  els.logLine.className = 'log-line';
-  els.logLine.textContent = 'Pump to inflate, or collect your earnings.';
+  els.burst.innerHTML = '';
+  els.balloonG.style.opacity = 1;
+  setStatus('Pump to inflate, or collect your earnings.');
   els.btnPump.disabled = false;
   els.btnCollect.disabled = false;
   render();
@@ -528,16 +527,10 @@ function render(){
   els.totalEarnings.textContent = formatCents(state.totalEarningsCents);
   els.balloonEarnings.textContent = formatCents(state.balloonEarningsCents);
   els.collectAmt.textContent = formatCents(state.balloonEarningsCents);
-  // Deliberately no risk-coded gauge here: real breakpoints range up to 128
-  // pumps (mean ~64), so any visual that fills up or turns red by pump 20-30
-  // would misrepresent the actual odds. Just report the plain count.
-  els.pumpCount.textContent = String(state.pumps).padStart(3, '0');
-
-  // balloon visual scale: sqrt curve so early pumps grow it fast, tapers off
-  const growth = Math.min(state.pumps / 40, 1); // visually saturate around 40 pumps
-  const scale = 1 + Math.sqrt(growth) * 1.6;
-  els.balloonSvg.style.transform = `scale(${scale})`;
-  els.balloonSvg.style.transformOrigin = '50% 100%';
+  // Deliberately no risk-coded indicator: breakpoints range up to 128 pumps
+  // (mean ~64), so anything that fills or reddens early would misstate the odds.
+  els.pumpCount.textContent = state.pumps;
+  if (!state.popped) drawBalloon(state.pumps);
 }
 
 function formatCents(c){
@@ -563,14 +556,15 @@ function pop(){
   els.btnPump.disabled = true;
   els.btnCollect.disabled = true;
   playPop();
-  els.consoleEl.classList.add('shake');
-  setTimeout(() => els.consoleEl.classList.remove('shake'), 420);
-  els.logLine.className = 'log-line danger';
-  els.logLine.textContent = `Popped at pump ${state.pumps}. $${(state.balloonEarningsCents/100).toFixed(2)} lost.`;
+
+  burstAt(state.pumps - 1);            // burst from the last size the player actually saw
+  els.balloonG.style.opacity = 0;
+  els.app.classList.add('shake');
+  setTimeout(() => els.app.classList.remove('shake'), 420);
+  setStatus(`Popped on pump ${state.pumps}. ${formatCents(state.balloonEarningsCents)} lost.`, 'bad');
 
   logTrial({ popped: true, earned: 0 });
-
-  setTimeout(nextBalloon, 900);
+  setTimeout(nextBalloon, 1100);
 }
 
 function collect(){
@@ -579,12 +573,10 @@ function collect(){
   state.totalEarningsCents += state.balloonEarningsCents;
   els.btnPump.disabled = true;
   els.btnCollect.disabled = true;
-  els.logLine.className = 'log-line success';
-  els.logLine.textContent = `Collected $${(state.balloonEarningsCents/100).toFixed(2)}.`;
+  setStatus(`Collected ${formatCents(state.balloonEarningsCents)}.`, 'good');
 
   logTrial({ popped: false, earned: state.balloonEarningsCents });
-
-  setTimeout(nextBalloon, 600);
+  setTimeout(nextBalloon, 700);
 }
 
 function logTrial({ popped, earned }){
@@ -600,7 +592,7 @@ function logTrial({ popped, earned }){
     breakpoint: state.breakpoint,        // the hidden pump limit this balloon rolled
     earned: earned / 100,
     cumulativeTotal: state.totalEarningsCents / 100,
-    decisionTimeMs: now - state.balloonStartTime, // time from balloon start to final decision
+    decisionTimeMs: now - state.balloonStartTime,
   };
   state.trials.push(trial);
   onTrialComplete(trial);
@@ -610,14 +602,14 @@ function logTrial({ popped, earned }){
 
 function appendLogRow(trial){
   const tr = document.createElement('tr');
+  const cls = trial.popped ? 'pop' : 'bank';
   tr.innerHTML = `
     <td>${trial.balloonIndex}</td>
     <td>${trial.pumps}</td>
-    <td class="${trial.popped ? 'pop' : 'bank'}">${trial.popped ? 'Popped' : 'Banked'}</td>
-    <td class="${trial.popped ? 'pop' : 'bank'}">${trial.popped ? '—' : '$' + trial.earned.toFixed(2)}</td>
+    <td class="${cls}">${trial.popped ? 'Popped' : 'Banked'}</td>
+    <td class="${cls}">${trial.popped ? '—' : '$' + trial.earned.toFixed(2)}</td>
   `;
   els.logBody.appendChild(tr);
-  els.logBody.parentElement.scrollTop = els.logBody.parentElement.scrollHeight;
 }
 
 function nextBalloon(){
@@ -630,8 +622,9 @@ function nextBalloon(){
 }
 
 function finishSession(){
-  els.taskView.style.display = 'none';
+  els.app.style.display = 'none';
   els.summaryView.style.display = 'block';
+  window.scrollTo(0, 0);
 
   const banked = state.trials.filter(t => !t.popped);
   const poppedCount = state.trials.filter(t => t.popped).length;
@@ -639,9 +632,10 @@ function finishSession(){
     ? Math.round(banked.reduce((s, t) => s + t.pumps, 0) / banked.length)
     : 0;
 
+  els.sumSub.textContent = `All ${CONFIG.numBalloons} balloons done. Here is how the session went.`;
   els.sumTotal.textContent = formatCents(state.totalEarningsCents);
   els.sumAvgPumps.textContent = avgPumps;
-  els.sumPopped.textContent = `${poppedCount}/${CONFIG.numBalloons}`;
+  els.sumPopped.textContent = `${poppedCount} of ${CONFIG.numBalloons}`;
 
   const session = {
     trials: state.trials,
@@ -665,7 +659,7 @@ els.btnCopyJson.addEventListener('click', async () => {
     await navigator.clipboard.writeText(text);
     els.copyHint.textContent = 'Copied to clipboard.';
   } catch (e) {
-    els.copyHint.textContent = 'Copy failed — see window.__bartSession in console.';
+    els.copyHint.textContent = 'Copy failed. See window.__bartSession in the console.';
   }
   setTimeout(() => { els.copyHint.textContent = 'window.__bartSession holds the full trial log'; }, 2200);
 });
@@ -674,7 +668,7 @@ els.btnRestart.addEventListener('click', () => {
   state = { trialIndex: 0, pumps: 0, breakpoint: 0, popped: false, balloonEarningsCents: 0, totalEarningsCents: 0, balloonStartTime: 0, trials: [] };
   els.logBody.innerHTML = '';
   els.summaryView.style.display = 'none';
-  els.taskView.style.display = 'block';
+  els.app.style.display = 'flex';
   startBalloon();
 });
 
