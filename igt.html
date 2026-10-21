@@ -301,6 +301,7 @@
     <div class="summary-actions">
       <button class="btn btn-ghost" id="btnCopyJson">Copy session JSON</button>
       <div class="hint" id="copyHint">window.__igtSession holds the full trial log</div>
+      <button class="btn btn-restart" id="btnNext" style="background:var(--green);display:none">Continue to the next task</button>
       <button class="btn" id="btnRestart">Run again</button>
     </div>
   </div>
@@ -322,6 +323,11 @@ const CONFIG = {
   // Paste your Google Apps Script Web App URL here to log data to a Sheet.
   // Leave blank to run purely local (data still lands in window.__igtSession).
   sheetWebhookUrl: 'https://script.google.com/macros/s/AKfycbwkJ7Y27iKRwoU622JumLArOz6H1vG-X4MHbzoZ-ldQtYezL5zbU7yseV-r9Oy8tbBG/exec',
+
+  // Page opened by the "Continue" button on the end screen ('' hides the button).
+  // The session id travels with it (?sid=...), so one participant's rows from all
+  // three tasks share the same session_id in the Sheet.
+  nextPage: 'two-step.html',
 };
 
 /* Classic payoff structure. Every block of 10 cards from a deck contains exactly
@@ -343,7 +349,7 @@ function newSessionId(){
     ? crypto.randomUUID()
     : 'session-' + Date.now() + '-' + Math.random().toString(36).slice(2);
 }
-let SESSION_ID = newSessionId();   // regenerated on every "Run again"
+let SESSION_ID = (typeof location !== 'undefined' && new URLSearchParams(location.search).get('sid')) || newSessionId();   // regenerated on every "Run again"
 
 /* =========================================================
    SPREADSHEET / EXTERNAL INTEGRATION
@@ -850,6 +856,16 @@ els.btnRestart.addEventListener('click', () => {
   show('intro');
   window.scrollTo(0, 0);
 });
+
+/* "Continue" button on the end screen: opens the next task and carries the session id along */
+(function wireNext(){
+  const b = document.getElementById('btnNext');
+  if (!CONFIG.nextPage) return;                       // no next page configured: button stays hidden
+  b.style.display = '';
+  b.addEventListener('click', () => {
+    window.location.href = CONFIG.nextPage + '?sid=' + encodeURIComponent(SESSION_ID);
+  });
+})();
 
 /* init */
 els.introStart.textContent = fmt(CONFIG.startingBalance);
