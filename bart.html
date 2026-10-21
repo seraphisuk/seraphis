@@ -249,6 +249,7 @@
     <div class="summary-actions">
       <button class="btn-ghost" id="btnCopyJson">Copy session JSON</button>
       <div class="hint" id="copyHint">window.__bartSession holds the full trial log</div>
+      <button class="btn btn-restart" id="btnNext" style="background:var(--green);display:none">Continue to the next task</button>
       <button class="btn-restart" id="btnRestart">Run again</button>
     </div>
   </div>
@@ -266,22 +267,32 @@ const CONFIG = {
   // Paste your Google Apps Script Web App URL here to log data to a Sheet.
   // Leave blank to run purely local (data still lands in window.__bartSession).
   sheetWebhookUrl: 'https://script.google.com/macros/s/AKfycbwkJ7Y27iKRwoU622JumLArOz6H1vG-X4MHbzoZ-ldQtYezL5zbU7yseV-r9Oy8tbBG/exec',
+
+  // Page opened by the "Continue" button on the end screen ('' hides the button).
+  // The session id travels with it (?sid=...), so one participant's rows from all
+  // three tasks share the same session_id in the Sheet.
+  nextPage: 'igt.html',
 };
 
-// One ID per page load, so all rows from a single run can be grouped in the sheet.
-const SESSION_ID = (window.crypto && crypto.randomUUID)
-  ? crypto.randomUUID()
-  : 'session-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+// One ID per run, so all rows from a single run can be grouped in the sheet.
+// It is regenerated on "Run again", so a second run never blends into the first.
+function newSessionId(){
+  return (window.crypto && crypto.randomUUID)
+    ? crypto.randomUUID()
+    : 'session-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+}
+let SESSION_ID = (typeof location !== 'undefined' && new URLSearchParams(location.search).get('sid')) || newSessionId();
 
 /* =========================================================
    SPREADSHEET / EXTERNAL INTEGRATION
    ========================================================= */
 function onTrialComplete(trial) {
-  sendToSheet({ eventType: 'trial', ...trial });
+  sendToSheet({ task: 'bart', eventType: 'trial', ...trial });
 }
 
 function onSessionComplete(session) {
   sendToSheet({
+    task: 'bart',
     eventType: 'session_summary',
     sessionId: SESSION_ID,
     timestamp: new Date().toISOString(),
@@ -665,12 +676,23 @@ els.btnCopyJson.addEventListener('click', async () => {
 });
 
 els.btnRestart.addEventListener('click', () => {
+  SESSION_ID = newSessionId();
   state = { trialIndex: 0, pumps: 0, breakpoint: 0, popped: false, balloonEarningsCents: 0, totalEarningsCents: 0, balloonStartTime: 0, trials: [] };
   els.logBody.innerHTML = '';
   els.summaryView.style.display = 'none';
   els.app.style.display = 'flex';
   startBalloon();
 });
+
+/* "Continue" button on the end screen: opens the next task and carries the session id along */
+(function wireNext(){
+  const b = document.getElementById('btnNext');
+  if (!CONFIG.nextPage) return;                       // no next page configured: button stays hidden
+  b.style.display = '';
+  b.addEventListener('click', () => {
+    window.location.href = CONFIG.nextPage + '?sid=' + encodeURIComponent(SESSION_ID);
+  });
+})();
 
 /* init */
 startBalloon();
