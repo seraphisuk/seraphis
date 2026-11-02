@@ -1,0 +1,226 @@
+/**
+ * Multi-task Google Sheets webhook: BART + IGT + Two-Step
+
+const TASKS = {
+  bart: {
+    sheet: 'BART Data',
+    columns: [
+      'timestamp', 'session_id', 'event_type', 'balloon_index', 'total_balloons',
+      'pumps', 'outcome', 'breakpoint_pumps', 'earned_usd', 'cumulative_total_usd',
+      'decision_time_ms', 'total_earned_usd', 'avg_pumps_banked', 'popped_count'
+    ],
+    row: (d) => [
+      d.timestamp || '',
+      d.sessionId || '',
+      d.eventType || '',
+      d.balloonIndex ?? '',
+      d.totalBalloons ?? '',
+      d.pumps ?? '',
+      d.outcome || '',
+      d.breakpoint ?? '',
+      d.earned ?? '',
+      d.cumulativeTotal ?? '',
+      d.decisionTimeMs ?? '',
+      d.totalEarned ?? '',
+      d.avgPumpsBanked ?? '',
+      d.poppedCount ?? ''
+    ]
+  },
+
+  igt: {
+    sheet: 'IGT Data',
+    columns: [
+      'timestamp', 'session_id', 'event_type', 'trial', 'block',
+      'deck', 'deck_position', 'advantageous', 'win', 'loss', 'net',
+      'balance_after', 'choice_time_ms', 'deck_pick_n',
+      'final_balance', 'net_score',
+      'block1_net', 'block2_net', 'block3_net', 'block4_net', 'block5_net',
+      'picks_A', 'picks_B', 'picks_C', 'picks_D'
+    ],
+    row: (d) => [
+      d.timestamp || '',
+      d.sessionId || '',
+      d.eventType || '',
+      d.trial ?? '',
+      d.block ?? '',
+      d.deck || '',
+      d.deckPosition ?? '',
+      d.advantageous ?? '',
+      d.win ?? '',
+      d.loss ?? '',
+      d.net ?? '',
+      d.balanceAfter ?? '',
+      d.choiceTimeMs ?? '',
+      d.deckPickN ?? '',
+      d.finalBalance ?? '',
+      d.netScore ?? '',
+      ...[0, 1, 2, 3, 4].map((i) => (d.blockNetScores || [])[i] ?? ''),
+      ...['A', 'B', 'C', 'D'].map((k) => (d.picks || {})[k] ?? '')
+    ]
+  },
+
+  twostep: {
+    sheet: 'TwoStep Data',
+    columns: [
+      'timestamp', 'session_id', 'event_type', 'trial', 'block',
+      'stage1_choice', 'stage1_side', 'rt1_ms', 'transition', 'planet_reached',
+      'stage2_choice', 'stage2_side', 'rt2_ms', 'reward', 'reward_prob_chosen',
+      'p_alien1', 'p_alien2', 'p_alien3', 'p_alien4', 'total_coins',
+      'stage1_stay', 'prev_reward', 'prev_transition',
+      'reward_rate', 'common_rate',
+      'stay_rew_common', 'stay_rew_rare', 'stay_unrew_common', 'stay_unrew_rare',
+      'mean_rt1_ms', 'mean_rt2_ms'
+    ],
+    row: (d) => [
+      d.timestamp || '',
+      d.sessionId || '',
+      d.eventType || '',
+      d.trial ?? '',
+      d.block ?? '',
+      d.stage1Choice ?? '',
+      d.stage1Side || '',
+      d.rt1Ms ?? '',
+      d.transition || '',
+      d.planetReached ?? '',
+      d.stage2Choice ?? '',
+      d.stage2Side || '',
+      d.rt2Ms ?? '',
+      d.reward ?? '',
+      d.rewardProbChosen ?? '',
+      d.pAlien1 ?? '',
+      d.pAlien2 ?? '',
+      d.pAlien3 ?? '',
+      d.pAlien4 ?? '',
+      d.totalCoins ?? '',
+      d.stage1Stay ?? '',
+      d.prevReward ?? '',
+      d.prevTransition || '',
+      d.rewardRate ?? '',
+      d.commonRate ?? '',
+      d.stayRewCommon ?? '',
+      d.stayRewRare ?? '',
+      d.stayUnrewCommon ?? '',
+      d.stayUnrewRare ?? '',
+      d.meanRt1Ms ?? '',
+      d.meanRt2Ms ?? ''
+    ]
+  }
+};
+
+const EXTRA_COLUMNS = ['row_id', 'page_build'];   // appended after each task's own columns
+const DEDUPE_WINDOW = 5000;                       // how many of the most recent rows to check for duplicates
+const API_VERSION = 2;                            // pages only trust replies that carry this version
+
+function doGet() {
+  return json_({ status: 'ok', message: 'Task logging endpoint is live.', tasks: Object.keys(TASKS) });
+}
+
+function doPost(e) {
+  let out;
+  try {
+    out = handle_(JSON.parse(e.postData.contents));
+  } catch (err) {
+    console.error(err && err.stack ? err.stack : err);   // visible under Apps Script > Executions
+    out = { status: 'error', message: String(err) };
+  }
+  return json_(out);
+}
+
+function json_(obj) {
+  return ContentService.createTextOutput(JSON.stringify(Object.assign({ v: API_VERSION }, obj))).setMimeType(ContentService.MimeType.JSON);
+}
+
+function handle_(body) {
+  // A page sends {batch:[...]}; a very old cached page may still send a single row.
+  const items = Array.isArray(body.batch) ? body.batch : [body];
+
+  const byTask = {};
+  items.forEach((d) => {
+    const key = (d && d.task && TASKS[d.task]) ? d.task : 'bart';   // untagged rows are BART, as before
+    (byTask[key] = byTask[key] || []).push(d);
+  });
+
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(25000)) return { status: 'busy' };               // tell the page to retry; never drop silently
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let stored = 0, duplicates = 0;
+
+    Object.keys(byTask).forEach((key) => {
+      const task = TASKS[key];
+      const width = task.columns.length + EXTRA_COLUMNS.length;
+      const idCol = task.columns.length + 1;
+      const sheet = ss.getSheetByName(task.sheet) || ss.insertSheet(task.sheet);
+      ensureHeader_(sheet, task.columns);
+
+      // row_ids already stored (most recent DEDUPE_WINDOW rows)
+      const seen = {};
+      const last = sheet.getLastRow();
+      if (last > 1) {
+        const start = Math.max(2, last - DEDUPE_WINDOW + 1);
+        sheet.getRange(start, idCol, last - start + 1, 1).getValues().forEach((r) => { if (r[0] !== '') seen[String(r[0])] = true; });
+      }
+
+      const rows = [];
+      byTask[key].forEach((d) => {
+        if (d.rowId) {
+          if (seen[d.rowId]) { duplicates++; return; }
+          seen[d.rowId] = true;
+        }
+        rows.push(task.row(d).concat([d.rowId || '', d.build || '']));
+      });
+
+      if (rows.length) {
+        const startRow = sheet.getLastRow() + 1;
+        ensureCapacity_(sheet, startRow + rows.length - 1, width);
+        sheet.getRange(startRow, 1, rows.length, width).setValues(rows);
+        stored += rows.length;
+      }
+    });
+
+    SpreadsheetApp.flush();
+    return { status: 'ok', stored: stored, duplicates: duplicates };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function ensureCapacity_(sheet, needRows, needCols) {
+  if (sheet.getMaxColumns() < needCols) sheet.insertColumnsAfter(sheet.getMaxColumns(), needCols - sheet.getMaxColumns());
+  if (sheet.getMaxRows() < needRows) sheet.insertRowsAfter(sheet.getMaxRows(), needRows - sheet.getMaxRows());
+}
+
+function ensureHeader_(sheet, columns) {
+  const want = columns.concat(EXTRA_COLUMNS);
+  ensureCapacity_(sheet, 1, want.length);
+  if (sheet.getLastRow() === 0) {                       // brand-new tab
+    sheet.getRange(1, 1, 1, want.length).setValues([want]);
+    sheet.setFrozenRows(1);
+    return;
+  }
+  // tab created by an earlier version: add the two new headers at the end if they are missing
+  const cur = sheet.getRange(1, columns.length + 1, 1, EXTRA_COLUMNS.length).getValues()[0];
+  EXTRA_COLUMNS.forEach((name, i) => {
+    if (cur[i] === '') sheet.getRange(1, columns.length + 1 + i).setValue(name);
+  });
+}
+
+/**
+ * One-off clean-up. If an outdated version of this script was live for a while, it filed empty rows
+ * instead of real data. In the Apps Script editor choose "cleanupBlankRows" in the function drop-down
+ * and press Run. It deletes only rows that are completely empty in every data column.
+ */
+function cleanupBlankRows() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  Object.keys(TASKS).forEach((key) => {
+    const task = TASKS[key];
+    const sheet = ss.getSheetByName(task.sheet);
+    if (!sheet || sheet.getLastRow() < 2) return;
+    const vals = sheet.getRange(2, 1, sheet.getLastRow() - 1, task.columns.length).getValues();
+    let removed = 0;
+    for (let i = vals.length - 1; i >= 0; i--) {
+      if (vals[i].every((c) => c === '')) { sheet.deleteRow(i + 2); removed++; }
+    }
+    console.log(task.sheet + ': removed ' + removed + ' empty row(s)');
+  });
+}
