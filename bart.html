@@ -3,12 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="only light">
+<meta name="supported-color-schemes" content="light">
 <title>BART — Balloon Analogue Risk Task</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap" rel="stylesheet">
 <style>
   :root{
+    color-scheme: light;
+    color-scheme: only light;
     --sky:#D8E8F3;
     --paper:#F7F4EC;
     --ink:#14213A;
@@ -22,7 +26,7 @@
     --font:'Bricolage Grotesque', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   }
 
-  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
   html,body{ height:100%; margin:0; }
   body{
     font-family:var(--font);
@@ -175,6 +179,26 @@
     .app.shake{ animation:none; }
     *{ transition:none !important; }
   }
+
+  /* ---------- touch safety + mute button ---------- */
+  .app{ -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
+  .mute{
+    display:grid; place-items:center;
+    width:42px; height:42px; padding:0;
+    margin:6px 0 0 auto;
+    border:1.5px solid var(--line);
+    border-radius:50%;
+    background:rgba(255,255,255,.6);
+    color:var(--ink);
+    cursor:pointer;
+    touch-action:manipulation;
+  }
+  .mute svg{ width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  .mute .x{ display:none; }
+  .mute[aria-pressed="true"] .waves{ display:none; }
+  .mute[aria-pressed="true"] .x{ display:inline; }
+  .mute:focus-visible{ outline:3px solid var(--ink); outline-offset:2px; }
+  @media (max-height:560px){ .mute{ width:34px; height:34px; margin-top:4px; } .mute svg{ width:18px; height:18px; } }
 </style>
 </head>
 <body>
@@ -190,6 +214,9 @@
     <div class="right">
       <span class="hud-label">Banked</span>
       <span class="hud-value" id="totalEarnings">$0.00</span>
+      <button class="mute" id="btnMute" type="button" aria-pressed="false" aria-label="Mute sound" title="Mute sound">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5 H8 L13 5.5 V18.5 L8 14.5 H4 Z"/><path class="waves" d="M16 9 C 17.6 10.4, 17.6 13.6, 16 15"/><path class="waves" d="M18.8 6.6 C 21.6 9.4, 21.6 14.6, 18.8 17.4"/><path class="x" d="M16.5 9.5 L21.5 14.5 M21.5 9.5 L16.5 14.5"/></svg>
+      </button>
     </div>
   </header>
 
@@ -249,7 +276,7 @@
     <div class="summary-actions">
       <button class="btn-ghost" id="btnCopyJson">Copy session JSON</button>
       <div class="hint" id="copyHint">window.__bartSession holds the full trial log</div>
-      <button class="btn btn-restart" id="btnNext" style="background:var(--green);display:none">Continue to the next task</button>
+      <button class="btn btn-restart" id="btnNext" style="background:var(--green)">Continue to the next task</button>
       <button class="btn-restart" id="btnRestart">Run again</button>
     </div>
   </div>
@@ -272,6 +299,9 @@ const CONFIG = {
   // The session id travels with it (?sid=...), so one participant's rows from all
   // three tasks share the same session_id in the Sheet.
   nextPage: 'igt.html',
+
+  // The end screen offers \"Run again\" only if this is true. Leave it off for real participants.
+  allowRunAgain: false,
 };
 
 // One ID per run, so all rows from a single run can be grouped in the sheet.
@@ -291,6 +321,7 @@ function onTrialComplete(trial) {
 }
 
 function onSessionComplete(session) {
+  logReconcile(session);
   sendToSheet({
     task: 'bart',
     eventType: 'session_summary',
@@ -303,15 +334,135 @@ function onSessionComplete(session) {
   });
 }
 
+/* =========================================================
+   RELIABLE LOGGING
+   Every row gets a unique rowId and waits in a queue that is also saved in the
+   browser. Rows are sent in batches, one request at a time, and leave the queue
+   only when the server confirms it stored them. Anything else is retried with
+   growing delays, including after a reload or on the next task page. The server
+   ignores rowIds it already has, so a retry can never create a duplicate row.
+   ========================================================= */
+const BUILD = '2026-10-24';          // shows up in the sheet (page_build) so you can see which version each participant ran
+const TASK_NAME = 'bart';
+const LOG = {
+  key: 'taskLog.queue.v1', queue: [], sending: false, fails: 0, readFails: 0, blind: false,
+  timer: null, lastAttempt: 0,
+  batchSize: 40, timeoutMs: 40000, baseDelayMs: 1500, maxDelayMs: 30000,
+};
+function newRunId(){ return Math.random().toString(36).slice(2, 10); }
+let RUN_ID = newRunId();            // new on every page load / run, so a replay is never mistaken for a duplicate
+
+function logSave(){ try { localStorage.setItem(LOG.key, JSON.stringify(LOG.queue)); } catch (e) {} }
+function logLoad(){
+  try {
+    const saved = JSON.parse(localStorage.getItem(LOG.key) || '[]');
+    if (Array.isArray(saved)) saved.forEach(p => {
+      if (p && p.rowId && !LOG.queue.some(q => q.rowId === p.rowId)) LOG.queue.push(p);
+    });
+  } catch (e) {}
+}
+function rowKey(p){
+  return [p.sessionId, RUN_ID, p.task, p.eventType, (p.balloonIndex ?? p.trial ?? 'summary')].join('|');
+}
+
 function sendToSheet(payload) {
   if (!CONFIG.sheetWebhookUrl) return;
-  fetch(CONFIG.sheetWebhookUrl, {
-    method: 'POST',
-    // text/plain avoids a CORS preflight that Apps Script web apps can't answer
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify(payload),
-    mode: 'no-cors', // response is unreadable, but the write still happens
-  }).catch(() => { /* never let a network hiccup block the task */ });
+  payload.build = BUILD;
+  payload.rowId = rowKey(payload);
+  if (!LOG.queue.some(q => q.rowId === payload.rowId)) LOG.queue.push(payload);
+  logSave();
+  logFlush();
+}
+
+async function logPost(batch){
+  const body = JSON.stringify({ batch });
+  const ctl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+  const t = ctl ? setTimeout(() => ctl.abort(), LOG.timeoutMs) : null;
+  try {
+    const opts = {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },   // plain text avoids a CORS preflight Apps Script can't answer
+      body,
+      keepalive: body.length < 60000,                            // lets the request finish even if the page is closing
+    };
+    if (ctl) opts.signal = ctl.signal;
+    if (LOG.blind){                                              // fallback: reply can't be read, so "sent" counts as success
+      opts.mode = 'no-cors';
+      await fetch(CONFIG.sheetWebhookUrl, opts);
+      return { ok: true };
+    }
+    const res = await fetch(CONFIG.sheetWebhookUrl, opts);
+    const data = await res.json();                               // throws if the reply is not readable JSON
+    LOG.readFails = 0;
+    return { ok: !!data && data.status === 'ok' };
+  } finally { if (t) clearTimeout(t); }
+}
+
+async function logFlush(){
+  if (!CONFIG.sheetWebhookUrl || LOG.sending || !LOG.queue.length) return;
+  LOG.sending = true;
+  LOG.lastAttempt = Date.now();
+  const batch = LOG.queue.slice(0, LOG.batchSize);
+  let ok = false, threw = false;
+  try { ok = (await logPost(batch)).ok; } catch (e) { threw = true; }
+  LOG.sending = false;
+  if (ok){
+    const sent = new Set(batch.map(p => p.rowId));
+    LOG.queue = LOG.queue.filter(p => !sent.has(p.rowId));
+    LOG.fails = 0;
+    logSave();
+    if (LOG.queue.length) logFlush();
+    return;
+  }
+  LOG.fails++;
+  if (threw && !LOG.blind){
+    LOG.readFails++;
+    // Several unreadable replies in a row while the device is online: the browser probably can't read
+    // the server's reply at all. Fall back to send-and-assume (plus the end-of-run re-send below).
+    if (LOG.readFails >= 3 && navigator.onLine !== false) LOG.blind = true;
+  }
+  const wait = Math.min(LOG.maxDelayMs, LOG.baseDelayMs * Math.pow(2, Math.min(LOG.fails - 1, 5)));
+  clearTimeout(LOG.timer);
+  LOG.timer = setTimeout(logFlush, wait);
+}
+
+function logDrain(maxMs){            // resolves true when everything is saved, false if time ran out
+  return new Promise(resolve => {
+    const t0 = Date.now();
+    (function check(){
+      if (!LOG.queue.length) return resolve(true);
+      if (Date.now() - t0 > maxMs) return resolve(false);
+      if (!LOG.sending && Date.now() - LOG.lastAttempt > 800) logFlush();
+      setTimeout(check, 200);
+    })();
+  });
+}
+
+function logBeacon(){                // last-chance send when the page is being hidden or closed
+  if (!CONFIG.sheetWebhookUrl || !LOG.queue.length || !navigator.sendBeacon) return;
+  try {
+    navigator.sendBeacon(CONFIG.sheetWebhookUrl,
+      new Blob([JSON.stringify({ batch: LOG.queue.slice(0, LOG.batchSize) })], { type: 'text/plain;charset=UTF-8' }));
+  } catch (e) {}
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') logBeacon(); else logFlush(); });
+window.addEventListener('pagehide', logBeacon);
+window.addEventListener('online', logFlush);
+logLoad();
+setTimeout(logFlush, 500);           // resend anything left over from an interrupted run or an earlier page
+
+/* At the end of a run, send every trial row once more. Rows the server already has are ignored
+   (matched by rowId), so this only fills in anything that never arrived. */
+function logReconcile(session){
+  (session.trials || []).forEach(t => sendToSheet({ task: TASK_NAME, eventType: 'trial', ...t }));
+  setTimeout(() => {                 // runs after the summary row has been queued too
+    if (CONFIG.nextPage) return;     // when a Continue button exists it waits for the queue itself
+    logDrain(20000).then((ok) => {
+      if (window.__endNote) window.__endNote.textContent = ok
+        ? 'Everything is saved. Thank you for taking part.'
+        : 'Your answers are still being saved. Please keep this page open for a few more seconds. Thank you for taking part.';
+    });
+  }, 0);
 }
 
 /* =========================================================
@@ -453,10 +604,57 @@ function burstAt(pumps){
 }
 
 /* =========================================================
+   MUTE + TOUCH SAFETY
+   ========================================================= */
+let MUTED = (function(){
+  try {
+    const q = new URLSearchParams(location.search).get('mute');   // carried over from the previous task
+    if (q === '1') return true;
+    if (q === '0') return false;
+    return sessionStorage.getItem('task.muted') === '1';
+  } catch (e) { return false; }
+})();
+let masterGain = null;
+function dest(c){                       // every sound goes through this one volume control
+  if (!masterGain){ masterGain = c.createGain(); masterGain.gain.value = MUTED ? 0 : 1; masterGain.connect(c.destination); }
+  return masterGain;
+}
+const btnMute = document.getElementById('btnMute');
+function renderMute(){
+  btnMute.setAttribute('aria-pressed', MUTED ? 'true' : 'false');
+  btnMute.setAttribute('aria-label', MUTED ? 'Unmute sound' : 'Mute sound');
+  btnMute.setAttribute('title', MUTED ? 'Unmute sound' : 'Mute sound');
+}
+function setMuted(m){
+  MUTED = m;
+  if (masterGain) masterGain.gain.value = m ? 0 : 1;
+  try { sessionStorage.setItem('task.muted', m ? '1' : '0'); } catch (e) {}
+  if (!m) { try { ctx(); } catch (e) {} }          // unmuting is a tap, so it also unlocks audio on iOS
+  renderMute();
+}
+btnMute.addEventListener('click', () => setMuted(!MUTED));
+renderMute();
+
+/* Stop accidental double-tap zoom. CSS (touch-action) handles most browsers; this also covers
+   iOS Safari taps that land on text, empty space or a disabled button. A tap on a live button is
+   never touched, so rapid pumping / choosing is unaffected. Pinch-zoom stays available. */
+let lastTouchEnd = 0;
+document.addEventListener('touchend', (e) => {
+  const now = Date.now();
+  const btn = e.target && e.target.closest ? e.target.closest('button') : null;
+  if (now - lastTouchEnd < 350 && (!btn || btn.disabled)) e.preventDefault();
+  lastTouchEnd = now;
+}, { passive: false });
+
+/* =========================================================
    SOUND (synthesized, no external assets)
    ========================================================= */
 let audioCtx = null;
-function ctx(){ if(!audioCtx){ audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } return audioCtx; }
+function ctx(){
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended' && audioCtx.resume) audioCtx.resume();
+  return audioCtx;
+}
 
 function playPop(){
   const c = ctx();
@@ -475,7 +673,7 @@ function playPop(){
   const gain = c.createGain();
   gain.gain.setValueAtTime(0.5, c.currentTime);
   gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.25);
-  noise.connect(filter).connect(gain).connect(c.destination);
+  noise.connect(filter).connect(gain).connect(dest(c));
   noise.start();
 }
 
@@ -489,7 +687,7 @@ function playCollect(){
     gain.gain.setValueAtTime(0.001, c.currentTime + t);
     gain.gain.linearRampToValueAtTime(0.15, c.currentTime + t + 0.02);
     gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + t + 0.2);
-    osc.connect(gain).connect(c.destination);
+    osc.connect(gain).connect(dest(c));
     osc.start(c.currentTime + t);
     osc.stop(c.currentTime + t + 0.22);
   });
@@ -504,7 +702,7 @@ function playPump(){
   osc.frequency.exponentialRampToValueAtTime(240, c.currentTime + 0.05);
   gain.gain.setValueAtTime(0.06, c.currentTime);
   gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.06);
-  osc.connect(gain).connect(c.destination);
+  osc.connect(gain).connect(dest(c));
   osc.start();
   osc.stop(c.currentTime + 0.07);
 }
@@ -677,6 +875,7 @@ els.btnCopyJson.addEventListener('click', async () => {
 
 els.btnRestart.addEventListener('click', () => {
   SESSION_ID = newSessionId();
+  RUN_ID = newRunId();
   state = { trialIndex: 0, pumps: 0, breakpoint: 0, popped: false, balloonEarningsCents: 0, totalEarningsCents: 0, balloonStartTime: 0, trials: [] };
   els.logBody.innerHTML = '';
   els.summaryView.style.display = 'none';
@@ -684,13 +883,26 @@ els.btnRestart.addEventListener('click', () => {
   startBalloon();
 });
 
-/* "Continue" button on the end screen: opens the next task and carries the session id along */
-(function wireNext(){
-  const b = document.getElementById('btnNext');
-  if (!CONFIG.nextPage) return;                       // no next page configured: button stays hidden
-  b.style.display = '';
-  b.addEventListener('click', () => {
-    window.location.href = CONFIG.nextPage + '?sid=' + encodeURIComponent(SESSION_ID);
+/* End-screen buttons: Continue (waits until the answers are saved) and, optionally, Run again */
+(function wireEnd(){
+  const next = document.getElementById('btnNext');
+  const again = document.getElementById('btnRestart');
+  if (!CONFIG.allowRunAgain) again.style.display = 'none';
+  if (!CONFIG.nextPage){
+    next.style.display = 'none';
+    const note = document.createElement('p');
+    note.className = 'hint';
+    note.textContent = CONFIG.sheetWebhookUrl ? 'Saving your answers\u2026' : 'That was the last task. Thank you for taking part.';
+    next.parentNode.insertBefore(note, next);
+    window.__endNote = note;
+    return;
+  }
+  next.style.display = '';
+  next.addEventListener('click', async () => {
+    next.disabled = true;
+    next.textContent = 'Saving your answers\u2026';
+    await logDrain(4000);            // normally instant; if the connection is bad we move on and keep retrying on the next page
+    window.location.href = CONFIG.nextPage + '?sid=' + encodeURIComponent(SESSION_ID) + '&mute=' + (MUTED ? '1' : '0');
   });
 })();
 
